@@ -1,0 +1,172 @@
+{
+  "version": 1,
+  "name": "Pithouse · Elder Introduction",
+  "notes": "Prototype positions. Replace with Blender-authored coordinates. Historical narrative content is illustrative and needs community review.",
+  "environment": {
+    "splat": "../pithouse.sog",
+    "legacyAnnotations": "../settings.json",
+    "propsGlb": null
+  },
+  "spawn": {
+    "position": [
+      2,
+      2,
+      -2
+    ],
+    "lookAt": [
+      0,
+      1,
+      0
+    ]
+  },
+  "movement": {
+    "speed": 2.5,
+    "radius": 0.28,
+    "eyeHeight": 1.6,
+    "bounds": {
+      "min": [
+        -10,
+        -1,
+        -6
+      ],
+      "max": [
+        10,
+        8,
+        12
+      ]
+    }
+  },
+  "lighting": [
+    {
+      "type": "directional",
+      "rotation": [
+        50,
+        20,
+        0
+      ],
+      "intensity": 1.2
+    }
+  ],
+  "colliders": [],
+  "characters": [
+    {
+      "id": "elder",
+      "name": "Elder",
+      "position": [
+        0,
+        0,
+        1.6
+      ],
+      "yaw": 180,
+      "model": null,
+      "scale": 1,
+      "interactRadius": 4.5,
+      "dialogue": "welcome",
+      "animationClips": {
+        "Idle": "Idle",
+        "Talk": "Talk",
+        "Gesture": "Gesture"
+      }
+    }
+  ],
+  "hotspots": [],
+  "collectibles": [
+    {
+      "id": "sample-stone",
+      "name": "Study Stone",
+      "position": [
+        -1,
+        0.8,
+        2
+      ],
+      "radius": 1.7,
+      "note": "A demonstration collectible. Replace with an object and approved cultural interpretation."
+    }
+  ],
+  "dialogue": {
+    "welcome": {
+      "speaker": "Elder",
+      "text": "Welcome inside. What would you like to learn about today?",
+      "minDecisionSeconds": 7,
+      "choices": [
+        {
+          "text": "How was this home built?",
+          "next": "building"
+        },
+        {
+          "text": "How did people keep warm?",
+          "next": "warmth"
+        },
+        {
+          "text": "I just want to look around.",
+          "mode": "explore"
+        }
+      ]
+    },
+    "building": {
+      "speaker": "Elder",
+      "text": "Look toward the center pole. We can examine the structure together and consider how this space was built.",
+      "focus": [
+        0.7,
+        2.15,
+        4.05
+      ],
+      "minDecisionSeconds": 7,
+      "choices": [
+        {
+          "text": "Tell me about the center pole.",
+          "next": "pole"
+        },
+        {
+          "text": "What else can I learn?",
+          "next": "welcome"
+        },
+        {
+          "text": "Let me explore.",
+          "mode": "explore"
+        }
+      ]
+    },
+    "pole": {
+      "speaker": "Elder",
+      "text": "The center pole is a good place to start examining the construction. Select its marker to inspect the original annotation.",
+      "minDecisionSeconds": 6,
+      "choices": [
+        {
+          "text": "Ask another question.",
+          "next": "welcome"
+        },
+        {
+          "text": "Look around.",
+          "mode": "explore"
+        }
+      ]
+    },
+    "warmth": {
+      "speaker": "Elder",
+      "text": "There is an important distinction between a fire and a place where warm embers and stones are collected. Let's look at the annotated area.",
+      "focus": [
+        -0.18,
+        0.03,
+        1.26
+      ],
+      "minDecisionSeconds": 8,
+      "choices": [
+        {
+          "text": "Show me the annotation.",
+          "action": "annotation",
+          "annotationIndex": 1,
+          "mode": "explore"
+        },
+        {
+          "text": "Another topic, please.",
+          "next": "welcome"
+        },
+        {
+          "text": "Explore for myself.",
+          "mode": "explore"
+        }
+      ]
+    }
+  }
+}
