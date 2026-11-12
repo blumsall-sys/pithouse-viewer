@@ -26,7 +26,7 @@ body.dialogue-open #crosshair,body.started #welcome {display:none}
 .dialogue-footer {display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;font-size:11px;color:#a99a83;min-height:25px}
 .help-panel {position:fixed;z-index:10;right:20px;top:83px;width:min(380px,calc(100vw - 40px));background:var(--panel);padding:18px;border:1px solid #a58158;border-radius:8px;box-shadow:0 8px 36px #0009}
 .help-panel p {font-size:13px;line-height:1.6}.help-panel .dialogue-header {justify-content:space-between}
-.marker {position:absolute;transform:translate(-50%,-50%);padding:8px 12px;background:rgba(28,22,16,.86);border:1px solid #d9a96e;color:#ffe6bb;border-radius:24px;font-size:12px;white-space:nowrap;box-shadow:0 3px 20px #0007;pointer-events:auto}.marker:hover {background:#765030}
+.marker {position:absolute;transform:translate(-50%,-50%);padding:8px 12px;background:rgba(28,22,16,.86);border:1px solid #d9a96e;color:#ffe6bb;border-radius:24px;font-size:12px;white-space:nowrap;box-shadow:0 3px 20px #0007;pointer-events:auto}.marker:not(:disabled):hover {background:#765030}.marker:disabled {opacity:.63;cursor:default;pointer-events:none}
 #markers {position:fixed;inset:0;pointer-events:none;z-index:2;overflow:hidden}
 .touch-ui {position:fixed;z-index:5;inset:0;pointer-events:none}
 .touchpad {position:absolute;bottom:max(30px,env(safe-area-inset-bottom));width:128px;height:128px;border-radius:50%;border:2px solid #f3d29a7a;background:#1a120c57;pointer-events:auto;touch-action:none;user-select:none}
