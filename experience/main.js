@@ -1,4 +1,5 @@
 import * as pc from 'playcanvas';
+import { AdventureRuntime } from './adventure-runtime.js';
 
 // Independent PlayCanvas runtime. Original SuperSplat viewer remains untouched.
 const $ = (id) => document.getElementById(id);
@@ -12,7 +13,7 @@ const state = { ready:false, started:false, talking:false, typing:false, selecte
   typeText:'', shown:0, minSeconds:0, choicePending:null, voice:false, yaw:0, pitch:0, keys:new Set(),
   touchMove:[0,0], touchLook:[0,0], collected:new Set(), scene:null, annotations:[], positions:[], nodes:new Map(),
   status:'Loading', debug:false };
-let app, camera, player, npcAnim;
+let app, camera, player, npcAnim, adventure;
 let clock = 0, lastLook = null;
 let markerButtons = [];
 const resetButton = ui['start-button'];
@@ -143,8 +144,9 @@ function importAnnotations() {
     state.positions.push({type:'hotspot',id:h.id,name:h.name||h.id,position:v3(h.position),radius:h.radius||2.5,dialogue:h.dialogue});
   }
   for(const c of(state.scene.collectibles||[])){
-    state.positions.push({type:'collectible',id:c.id,name:c.name||'Collectible',position:v3(c.position),radius:c.radius||1.6,note:c.note});
-    primitive('sphere','Collectible · '+c.id,c.position,[.18,.18,.18],new pc.Color(.97,.69,.2));
+    state.positions.push({type:'collectible',id:c.id,name:c.name||'Collectible',position:v3(c.position),radius:c.radius||1.6,note:c.note,consume:c.consume||false});
+    const entity=primitive('sphere','Collectible · '+c.id,c.position,[.18,.18,.18],new pc.Color(.97,.69,.2));
+    state.nodes.set('item:'+c.id,entity);
   }
   markerButtons=state.positions.map(item=>{
     const button=document.createElement('button');
@@ -203,13 +205,12 @@ function interactWith(item) {
     case 'annotation':showAnnotation(item.index);break;
     case 'hotspot':item.dialogue?showNode(item.dialogue):showMessage(item.name,'This object is ready for an authored interaction.');break;
     case 'collectible':
-      if(state.collected.has(item.id))return;
-      state.collected.add(item.id);
-      safeText(ui.collection,'Collected '+state.collected.size+' / '+(state.scene.collectibles||[]).length+' · '+item.name);
-      showMessage(item.name,item.note||'Item collected.');break;
+      adventure?.inspect(item);break;
   }
 }
 function closeDialogue() {
+  const wasTalking=state.talking;
+  if(wasTalking)adventure?.endDialogue();
   state.talking=false;state.typing=false;ui.dialogue.hidden=true;ui['dialogue-options'].replaceChildren();
   document.body.classList.remove('dialogue-open');setAnimMode(0);
   status('Explore · E to interact · mouse to look');
@@ -255,23 +256,33 @@ function openDialogue({speaker,text,choices=[],minDecisionSeconds=0,focus=null})
   setAnimMode(1);sayOutLoud(text);
 }
 function showNode(name) {
-  const node=state.scene.dialogue?.[name];
+  let node=state.scene.dialogue?.[name];
   if(!node){console.warn('Missing dialogue',name);return;}
+  node=adventure?.decorateDialogue(name,node)||node;
+  adventure?.enterDialogue(node,name);
   state.selected=name;openDialogue(node);
+  if(adventure)adventure.dialogueChoice=0;
 }
-function showMessage(speaker,text) { openDialogue({speaker,text,choices:[{text:'Continue exploring',mode:'explore'}]}); }
+function showMessage(speaker,text) { if(adventure)adventure.enterDialogue({},null);openDialogue({speaker,text,choices:[{text:'Continue exploring',mode:'explore'}]}); }
 function showAnnotation(index) {
   const a=state.annotations[index];if(!a)return;
+  adventure?.enterDialogue({},null);
   openDialogue({speaker:a.title||'Point of Interest',text:a.text||'A point of interest.',
     choices:[{text:'Continue exploring',mode:'explore'},{text:'Speak to the Elder',next:'welcome'}]});
+}
+function closeDialogueForChoice() {
+  state.talking=false;state.typing=false;ui.dialogue.hidden=true;ui['dialogue-options'].replaceChildren();
+  document.body.classList.remove('dialogue-open');setAnimMode(0);
 }
 function choose(choice) {
   if(state.typing||state.timer<state.minSeconds)return;
   if('speechSynthesis'in window)speechSynthesis.cancel();
   setAnimMode(2);
-  closeDialogue();
+  // Reusing the dialogue camera across linked nodes prevents unintended snaps.
+  closeDialogueForChoice();
   if(choice.action==='annotation'&&typeof choice.annotationIndex==='number') {showAnnotation(choice.annotationIndex);return;}
   if(choice.next){showNode(choice.next);return;}
+  adventure?.endDialogue();
   status('Free exploration · find places, collect objects, or speak to the Elder');
 }
 ui['dialogue-next'].addEventListener('click',closeDialogue);
@@ -293,6 +304,7 @@ function updateMarkers() {
   safeText(ui.prompt,near?'Press E / tap Interact · '+near.name:'');
 }
 function onLook(dx,dy) {
+  if(adventure){adventure.look(dx,dy);return;}
   if(!state.started||state.talking||!ui.help.hidden)return;
   state.yaw-=dx*.17;state.pitch=clamp(state.pitch-dy*.16,-77,77);
   camera.setEulerAngles(state.pitch,state.yaw,0);
@@ -300,6 +312,7 @@ function onLook(dx,dy) {
 function handleInputs() {
   document.addEventListener('keydown',ev=>{
     if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(ev.code))ev.preventDefault();
+    if(adventure?.handleKey(ev))return;
     state.keys.add(ev.code);
     if(ev.code==='Backquote'){state.debug=!state.debug;ui.debug.hidden=!state.debug;}
     if(state.talking&&['Digit1','Digit2','Digit3'].includes(ev.code)){
@@ -347,8 +360,8 @@ function handleInputs() {
     if(!state.ready)return;
     state.started=true;document.body.classList.add('started');ui.welcome.hidden=true;
     if(MOBILE)ui.touch.hidden=false;
-    status('Explore the pithouse · approach the Elder and press E to speak');
-    // Never launch Elder dialogue on a timer. The player chooses when to speak.
+    adventure?.start();
+    // Do not open Elder dialogue until player approaches and explicitly interacts.
     state.since=clock;
   });
 }
@@ -366,9 +379,15 @@ async function main() {
   await createProps();
   await createCharacters();
   importAnnotations();
+  adventure=new AdventureRuntime({
+    pc,app,camera,scene:state.scene,state,showNode,closeDialogue,nearestInteraction,interactWith,status,
+    dialogueButtons:()=>ui['dialogue-options']
+  });
+  status('Initializing voxel collision…');
+  await adventure.initialize();
   app.on('update',dt=>{
     clock+=dt;
-    updateMovement(dt);
+    adventure?.step(dt);
     typeDialogue(dt);
     updateMarkers();
     if(state.debug) {
@@ -376,7 +395,7 @@ async function main() {
       safeText(ui.debug,'camera: '+[p.x,p.y,p.z].map(x=>x.toFixed(2)).join(', ')+'\nyaw: '+state.yaw.toFixed(0)+' · pitch: '+state.pitch.toFixed(0)+'\nmode: '+(state.talking?'dialogue':'explore'));
     }
   });
-  state.ready=true;status('Ready · original SOG loaded');
+  state.ready=true;status(adventure.walker?.voxel?'Ready · SOG + voxel walk collision':'Ready · SOG loaded, voxel collision unavailable');
   resetButton.disabled=false;safeText(resetButton,'Begin the journey');
 }
 main().catch(fail);
