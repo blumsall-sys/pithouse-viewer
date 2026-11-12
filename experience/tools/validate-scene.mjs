@@ -38,6 +38,24 @@ for(const [id,node] of Object.entries(scene.dialogue||{})){
     if(!c.next&&!c.mode&&!c.action)warn(id+' choice has no action');
   }
 }
+const shots=scene.cameras||{};
+for(const [name,shot] of Object.entries(shots)){
+  if(!vec(shot.position)||!vec(shot.target))error('Camera '+name+' requires position and target');
+  if(!Number.isFinite(shot.fov)||shot.fov<20||shot.fov>150)warn('Camera '+name+' has unusual FOV');
+  if(shot.keyframes){
+    if(!Array.isArray(shot.keyframes)||shot.keyframes.length<2)error('Camera '+name+' needs 2+ keyframes');
+    else for(const k of shot.keyframes) if(!vec(k.position)||!vec(k.target)||!Number.isFinite(k.t))error('Camera '+name+' invalid keyframe');
+  }
+}
+for(const [name,node] of Object.entries(scene.dialogue||{})){
+  if(typeof node.camera==='string'&&!shots[node.camera])warn('Dialogue '+name+' references missing camera '+node.camera);
+}
+for(const [label,url] of [['voxel JSON',scene.environment?.voxelJson],['voxel BIN',scene.environment?.voxelBin]]){
+  if(typeof url==='string'){
+    const filepath=path.resolve(dir,'..',url);
+    if(!fs.existsSync(filepath))warn(label+' file missing: '+url+'; walking will use fallback');
+  }
+}
 const chars=scene.characters||[],hots=scene.hotspots||[],items=scene.collectibles||[],walls=scene.colliders||[];
 unique(chars,'id','NPC');unique(hots,'id','hotspot');unique(items,'id','collectible');
 for(const [label,list] of [['NPC',chars],['hotspot',hots],['collectible',items]]){
