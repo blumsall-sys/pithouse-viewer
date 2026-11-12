@@ -51,6 +51,27 @@
     <button id="mobile-interact" class="primary" type="button">Interact</button>
   </div>
   <div id="fatal" role="alert" hidden></div>
+  <script>
+    // A partial zip/local update can leave main.js referring to a missing module.
+    // Make that failure visible instead of showing a permanent "Loading scene".
+    (async () => {
+      try {
+        for (const file of ['./main.js', './adventure-runtime.js', './data/pithouse-scene.json']) {
+          const result = await fetch(file, { method: 'HEAD', cache: 'no-store' });
+          if (!result.ok) throw new Error(file + ' returned HTTP ' + result.status);
+        }
+      } catch (error) {
+        const box = document.getElementById('fatal');
+        if (box) {
+          box.hidden = false;
+          box.textContent = 'Pithouse installation incomplete: ' + error.message +
+            '. Download the full feature-branch experience folder, including adventure-runtime.js.';
+        }
+        const start = document.getElementById('start-button');
+        if (start) { start.disabled = true; start.textContent = 'Missing experience files'; }
+      }
+    })();
+  </script>
   <script type="module" src="./main.js"></script>
 </body>
 </html>
