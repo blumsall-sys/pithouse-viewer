@@ -161,6 +161,7 @@ export class AdventureRuntime {
   installUI() {
     const top=document.querySelector('.top-actions');
     newButton(top,'Inventory (I)',()=>this.openInventory(),'quiet').id='inventory-button';
+    newButton(top,'Pause / Reset',()=>this.openPause(),'quiet').id='pause-button';
     this.audioBtn=newButton(top,'Ambience: On',()=>{this.ambience.setEnabled(!this.ambience.enabled);this.audioBtn.textContent='Ambience: '+(this.ambience.enabled?'On':'Off');},'quiet');
     const bottom=document.querySelector('.dialogue-footer');
     newButton(bottom,'Back (B/Esc)',()=>this.cancelDialogue(),'secondary').id='dialogue-back';
@@ -378,7 +379,7 @@ export class AdventureRuntime {
     }
     const active=(i)=>Boolean(pad.buttons[i]?.pressed);
     const edge=(i)=>active(i)&&!this.prevButtons[i];
-    if(!this.state.started&&edge(0))byId('start-button')?.click();
+    if(!this.state.started&&edge(0)){byId('start-button')?.click();this.prevButtons=pad.buttons.map(b=>Boolean(b?.pressed));return;}
     if(edge(9)){if(this.pause.hidden)this.openPause();else this.closeModal();}
     if(edge(1)){this.back();}
     if(edge(3)){this.openInventory();}
