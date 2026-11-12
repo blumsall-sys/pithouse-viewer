@@ -96,3 +96,30 @@ Blender: Install Pithouse Experience Builder v0.2 add-on. Add a Cutscene Camera 
 7. Confirm ambient audio starts on Begin and can be muted.
 
 Limits: Runtime Javascript syntax was checked and addon pure-Python tests pass, but this updated browser version has not been visually tested against your local assets or hardware. A fully physics-based capsule controller, rigidbody objects, persistent saves and synchronized recorded audio are not yet implemented.
+
+## Gameplay stabilisation and Elder animations — November 2026
+
+### Walking / jump
+Walking now uses a median of five voxel-floor samples under the character, a deadband on small height changes, smooth correction for real step changes, no camera head bob, and loss-of-ground hysteresis. Locomotion yaw and pitch are tracked independently from animated dialogue cameras. Space jumps only while grounded; Xbox A jumps if no nearby interaction target. The actual floor needs checking in the browser, particularly where voxel geometry is noisy.
+
+### Dialogue / cameras
+The first Elder interaction uses dialogue.welcome. Subsequent sessions use dialogue.topics and do not repeat the welcome. Follow-up questions go to topics. Dialogue text speed increased to 62 characters per second and minDecisionSeconds is zero for the sample story. Press Enter / gamepad A while letters are appearing to reveal the entire sentence immediately. Questions about construction and the center pole now use cameras.centerPole; warmth uses cameras.hearth. Player viewpoint is saved with a quaternion and independent navigation heading and restored after closing dialogue, avoiding 180 degree W/S inversions.
+
+### Real Elder animation assets — local conversion required
+User-supplied Idle.fbx, Talking.fbx, and Working On Device.fbx were inspected: all have Elder_ForExport mesh and 33 identically named mixamorig bones. Source FBXs are NOT committed to this public repository. Standalone PlayCanvas loads GLB, not FBX. Use experience/tools/build_elder_glb.py inside Blender 4.5/5.x, or the supplied separate offline Elder FBX-to-GLB kit.
+
+From a Windows command prompt, after unpacking the FBX files together:
+blender -b --python experience/tools/build_elder_glb.py -- "C:\\PithouseElderFBX" "C:\\path\\pithouse-viewer\\experience\\assets\\elder.glb"
+
+The converter imports all three FBX files, verifies matching bones, copies their actions to one Elder armature, exports the weighted character mesh and three named NLA tracks Idle, Talk and FireWork, and validates the GLB animation names. The scene manifest expects ./assets/elder.glb and maps Idle when unengaged, Talk for dialogue, FireWork for warmth. The PlayCanvas Anim component has three states and crossfades between them over 0.32 seconds. If GLB conversion/load fails, the character placeholder is shown with a console warning. Verify scale, material textures, bone retargeting and armature animation before distributing.
+
+Animation source handling: keep source FBXs offline unless their license allows public redistribution. Each is approximately 23 MB; bundling raw FBXs in the public GitHub Pages deploy would unnecessarily increase load size. Only the final GLB belongs in the experience/assets deployment directory.
+
+### Regression checks
+1. Walk continuously on the floor; idle camera should remain stable when standing still and not micro-bounce with voxel floor samples.
+2. Jump with Space in grounded exploration, land and return to walking. On gamepad, A jumps unless an interactable is in range.
+3. Talk to Elder, ask about hearth, return to topics, close dialogue and test W/S before and after.
+4. Open Elder again: no repeat initial welcome. Center-pole choices should use centerPole shot and focus on actual annotated support pole.
+5. Confirm Elder GLB visibly animates Idle, Talk, FireWork when installed locally. Inspect browser console for missing clip fallback.
+
+Code/config and the source FBX skeletons have been checked, but the rendered character, voxel movement changes and Blender GLB conversion have not been end-to-end verified in a live Blender/browser session.
