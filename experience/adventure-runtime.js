@@ -5,7 +5,7 @@
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const V=(pc,p)=>new pc.Vec3(...p);
 const near=(x)=>Math.abs(x)<.14?0:x;
-const copyPose=(camera)=>({position:camera.getPosition().clone(),rotation:camera.getEulerAngles().clone(),fov:camera.camera.fov});
+const copyPose=(camera)=>({position:camera.getPosition().clone(),rotation:camera.getRotation().clone(),fov:camera.camera.fov});
 const byId=(id)=>document.getElementById(id);
 function elem(tag,cls,parent,text) {
   const node=document.createElement(tag); if(cls)node.className=cls;
@@ -187,7 +187,7 @@ export class AdventureRuntime {
   constructor({pc,app,camera,scene,state,showNode,closeDialogue,nearestInteraction,interactWith,status,dialogueButtons}) {
     Object.assign(this,{pc,app,camera,scene,state,showNode,closeDialogue,nearestInteraction,interactWith,status,dialogueButtons});
     this.walker=null;this.ambience=new Ambience();this.gamepadAxes=[0,0];this.prevButtons=[];
-    this.dialogueChoice=0;this.modalChoice=0;this.transition=null;this.savedPose=null;this.shotTime=0;this.currentShot=null;
+    this.dialogueChoice=0;this.modalChoice=0;this.transition=null;this.savedPose=null;this.shotTime=0;this.currentShot=null;this.elderMet=false;
     this.inventory=[];this.modal=null;this.backAction=null;this.pause=null;
     this.settings={};
     this.installUI();
@@ -257,7 +257,8 @@ export class AdventureRuntime {
     this.transition={start,pose,duration:Math.max(.1,Number(shot.duration)||.65),elapsed:0,restore};
   }
   enterDialogue(node,id) {
-    if(!this.savedPose)this.savedPose=copyPose(this.camera);
+    // Keep exploration heading/feet separate from cinematic camera Euler angles.
+    if(!this.savedPose)this.savedPose={...copyPose(this.camera),navYaw:this.state.yaw,navPitch:this.state.pitch,groundFoot:this.walker?.feetY};
     const shot=this.poseFromShot(node,id);
     this.currentShot=shot||null;this.shotTime=0;
     if(shot)this.moveTo(shot);
@@ -280,8 +281,9 @@ export class AdventureRuntime {
     this.camera.setPosition(p);
     this.camera.camera.fov=start.fov+(end.fov-start.fov)*alpha;
     if(t.restore) {
-      const e=new this.pc.Vec3().lerp(start.rotation,end.rotation,alpha);
-      this.camera.setEulerAngles(e);
+      // Quaternions avoid 180-degree wrapping when the shot points backward.
+      const q=new this.pc.Quat().slerp(start.rotation,end.rotation,alpha);
+      this.camera.setRotation(q);
     } else {
       // Position and target keyframes are authored in Blender and exported in world coordinates.
       let target=end.target;
@@ -300,9 +302,14 @@ export class AdventureRuntime {
     if(t.elapsed>=t.duration) {
       this.transition=null;
       if(t.restore) {
-        // Restore navigation pitch/yaw from the actual saved player rotation.
-        const e=end.rotation;this.state.yaw=e.y;this.state.pitch=e.x;
-        this.walker?.reset(this.camera,end.position);
+        // Never read movement heading from camera.getEulerAngles() after lookAt().
+        this.state.yaw=end.navYaw;this.state.pitch=end.navPitch;
+        this.camera.setEulerAngles(end.navPitch,end.navYaw,0);
+        this.camera.setPosition(end.position);
+        if(Number.isFinite(end.groundFoot)&&this.walker) {
+          this.walker.feetY=end.groundFoot;this.walker.velocity=[0,0];this.walker.vy=0;
+        }
+        this.gamepadAxes=[0,0];
       }
     }
   }
@@ -363,18 +370,30 @@ export class AdventureRuntime {
     if(this.state.talking)this.closeDialogue();
     this.state.collected.clear();this.inventory=[];
     for(const [key,ent] of this.state.nodes){if(key.startsWith('item:'))ent.enabled=true;}
-    this.currentShot=null;this.savedPose=null;this.transition=null;
+    this.currentShot=null;this.savedPose=null;this.transition=null;this.elderMet=false;
     this.state.keys.clear();this.state.touchMove=[0,0];this.gamepadAxes=[0,0];
     byId('collection').textContent='';
     this.camera.setPosition(...this.scene.spawn.position);
     this.walker?.reset(this.camera,V(this.pc,this.scene.spawn.position));
-    this.camera.lookAt(V(this.pc,this.scene.spawn.lookAt));
-    const e=this.camera.getEulerAngles();this.state.yaw=e.y;this.state.pitch=e.x;
+    const dir=V(this.pc,this.scene.spawn.lookAt).sub(this.camera.getPosition());
+    this.state.yaw=Math.atan2(-dir.x,-dir.z)*180/Math.PI;
+    this.state.pitch=clamp(Math.atan2(dir.y,Math.hypot(dir.x,dir.z))*180/Math.PI,-77,77);
+    this.camera.setEulerAngles(this.state.pitch,this.state.yaw,0);
     this.state.started=false;document.body.classList.remove('started');
     byId('welcome').hidden=false;byId('touch').hidden=true;
     this.status('Experience reset · begin the journey');
   }
+  skipTyping() {
+    if(!this.state.typing)return false;
+    this.state.typeElapsed=1e4;this.state.timer=this.state.minSeconds;
+    this.state.shown=this.state.typeText.length;this.state.typing=false;
+    byId('dialogue-text').textContent=this.state.typeText;
+    return true;
+  }
   handleKey(ev) {
+    if(ev.code==='Space'&&!ev.repeat&&this.state.started&&!this.state.talking&&this.pause.hidden){
+      this.walker?.jump();return true;
+    }
     if(ev.code==='Escape') {
       if(!byId('help').hidden){byId('help').hidden=true;return true;}
       this.back();return true;
@@ -397,6 +416,7 @@ export class AdventureRuntime {
         btn[this.dialogueChoice]?.focus();return true;
       }
       if(ev.code==='Enter'||ev.code==='Space') {
+        if(this.skipTyping())return true;
         const btn=[...this.dialogueButtons().querySelectorAll('button')];
         btn[this.dialogueChoice]?.click();return true;
       }
@@ -428,8 +448,11 @@ export class AdventureRuntime {
       if(edge(13))this.dialogueChoice=Math.min(btn.length-1,this.dialogueChoice+1);
       if(edge(12))this.dialogueChoice=Math.max(0,this.dialogueChoice-1);
       btn[this.dialogueChoice]?.focus();
-      if(edge(0))btn[this.dialogueChoice]?.click();
-    }else if(this.state.started&&edge(0))this.interactWith(this.nearestInteraction());
+      if(edge(0)){if(!this.skipTyping())btn[this.dialogueChoice]?.click();}
+    }else if(this.state.started&&edge(0)) {
+      const target=this.nearestInteraction();
+      if(target)this.interactWith(target);else this.walker?.jump();
+    }
     this.prevButtons=pad.buttons.map(b=>Boolean(b?.pressed));
   }
 }
