@@ -268,6 +268,8 @@ function openDialogue({speaker,text,choices=[],minDecisionSeconds=0,focus=null})
   setAnimMode(state.selected==='warmth'||state.selected==='warmthDetail'?'FireWork':'Talk');sayOutLoud(text);
 }
 function showNode(name) {
+  // Greeting is a once-per-experience event even when older links point to welcome.
+  if(name==='welcome'&&adventure?.elderMet)name='topics';
   let node=state.scene.dialogue?.[name];
   if(!node){console.warn('Missing dialogue',name);return;}
   node=adventure?.decorateDialogue(name,node)||node;
