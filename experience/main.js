@@ -89,56 +89,61 @@ async function createProps() {
     app.root.addChild(asset.resource.instantiateRenderEntity());
   }catch(e){console.warn('Optional scene GLB failed to load',e);}
 }
-function makeNPCFallback(npc) {
-  const [x,y,z]=npc.position;
-  const body=primitive('cylinder','Elder placeholder torso',[x,y+.78,z],[.65,1.15,.47],new pc.Color(.41,.29,.17));
-  const head=primitive('sphere','Elder placeholder head',[x,y+1.58,z],[.39,.39,.39],new pc.Color(.78,.56,.36));
-  const badge=primitive('cylinder','Elder placeholder base',[x,y+.05,z],[.7,.08,.7],new pc.Color(.85,.59,.23),.75);
-  body.setEulerAngles(0,npc.yaw||0,0);head.setEulerAngles(0,npc.yaw||0,0);
-  return {body,head,badge};
-}
-// PlayCanvas Anim: assigned clips are states in the component's animation state graph.
-// Explicit crossfades are reliable on standalone Engine 2.x and avoid malformed
-// serialization/parameter versions (PlayCanvas docs: playing-animations).
+// One skinned GLB contains the mesh, armature, and all Blender NLA tracks.
+// Never display a dummy Elder: missing/corrupt character data is a visible load error.
 let currentElderMode='Idle';
-const ELDER_STATES={Idle:'Idle',Talk:'Talk',FireWork:'FireWork'};
-function makeAnimationGraph(entity,asset,npc) {
-  const clips=asset.resource?.animations||[];
-  const tracks=Object.fromEntries(clips.map(a=>[a.resource.name,a.resource]));
-  const names=npc.animationClips||ELDER_STATES;
-  const required=['Idle','Talk','FireWork'];
-  if(required.some(s=>!tracks[names[s]])) {
-    console.warn('Elder GLB missing clips. Found:',Object.keys(tracks),'expected:',names);
-    return;
+const elderAnimationStates=new Set();
+function makeAnimationGraph(entity, asset, npc) {
+  const animations=asset.resource?.animations||[];
+  const tracks=new Map(animations.map(a=>[a.resource?.name,a.resource]));
+  const requested=npc.animationClips||{};
+  const aliases={
+    Idle:[requested.Idle,'mixamo.com_Idle','Idle','idle'],
+    Talk:[requested.Talk,'NlaTrack_Talking','Talking','Talk'],
+    FireWork:[requested.FireWork,'NlaTrack_Working','Working','FireWork']
+  };
+  const resolved={};
+  for(const [state,names] of Object.entries(aliases)){
+    const track=names.map(n=>tracks.get(n)).find(Boolean);
+    if(track)resolved[state]=track;
   }
+  if(!resolved.Idle)throw new Error('Elder GLB has no Idle clip; found: '+[...tracks.keys()].join(', '));
   entity.addComponent('anim',{activate:true});
-  for(const name of required)entity.anim.assignAnimation(name,tracks[names[name]]);
+  elderAnimationStates.clear();
+  for(const [state,track] of Object.entries(resolved)){
+    entity.anim.assignAnimation(state,track);
+    elderAnimationStates.add(state);
+  }
   npcAnim=entity.anim;
-  npcAnim.baseLayer.play('Idle');
   currentElderMode='Idle';
-  console.info('Elder animation states ready: Idle, Talk, FireWork');
+  npcAnim.baseLayer.play('Idle');
+  console.info('Elder GLB loaded. Animations:',[...elderAnimationStates].join(', '));
 }
 function setAnimMode(mode) {
-  const stateName=typeof mode==='string'?mode:({0:'Idle',1:'Talk',2:'FireWork'}[mode]||'Idle');
-  if(!npcAnim||stateName===currentElderMode)return;
-  currentElderMode=stateName;
-  npcAnim.baseLayer.transition(stateName,.32);
+  const requested=typeof mode==='string'?mode:({0:'Idle',1:'Talk',2:'FireWork'}[mode]||'Idle');
+  const next=elderAnimationStates.has(requested)?requested:'Idle';
+  if(!npcAnim||next===currentElderMode)return;
+  currentElderMode=next;
+  npcAnim.baseLayer.transition(next,.32);
 }
 async function createCharacters() {
-  for(const npc of (state.scene.characters||[])) {
+  for(const npc of(state.scene.characters||[])) {
     const position=v3(npc.position);
-    // Target the Elder's torso instead of their feet (eye-level camera).
     const talkPoint=position.clone().add(new pc.Vec3(0,1.2,0));
     state.positions.push({type:'npc',name:npc.name||'Guide',position:talkPoint,id:npc.id||'npc',radius:npc.interactRadius||2.35,dialogue:npc.dialogue||'welcome'});
-    if(!npc.model){makeNPCFallback(npc);continue;}
-    try {
-      const a=await loadAsset(npc.model,'container',npc.name||'NPC');
-      const entity=a.resource.instantiateRenderEntity();
-      entity.name=npc.name||'NPC';
-      entity.setPosition(position);entity.setEulerAngles(0,npc.yaw||0,0);entity.setLocalScale(npc.scale||1,npc.scale||1,npc.scale||1);
-      app.root.addChild(entity);
-      makeAnimationGraph(entity,a,npc);
-    }catch(err){ console.warn('NPC model not available; placeholder displayed',err);makeNPCFallback(npc); }
+    if(!npc.model)throw new Error('Character '+(npc.name||npc.id)+' has no GLB model configured.');
+    status('Loading character: '+(npc.name||npc.id)+'…');
+    const a=await loadAsset(npc.model,'container',npc.name||'NPC');
+    if(!a.resource?.instantiateRenderEntity)throw new Error('Invalid GLB container: '+npc.model);
+    const entity=a.resource.instantiateRenderEntity();
+    entity.name=npc.name||'NPC';
+    entity.setPosition(position);
+    entity.setEulerAngles(0,npc.yaw||0,0);
+    const scale=Number(npc.scale)||1;
+    entity.setLocalScale(scale,scale,scale);
+    app.root.addChild(entity);
+    makeAnimationGraph(entity,a,npc);
+    state.nodes.set('npc:'+npc.id,entity);
   }
 }
 function importAnnotations() {
@@ -298,6 +303,7 @@ function choose(choice) {
   if(choice.action==='annotation'&&typeof choice.annotationIndex==='number') {showAnnotation(choice.annotationIndex);return;}
   if(choice.next){showNode(choice.next);return;}
   adventure?.endDialogue();
+  setAnimMode('Idle');
   state.keys.clear();
   status('Free exploration · find places, collect objects, or speak to the Elder');
 }
