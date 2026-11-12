@@ -138,3 +138,15 @@ The prototype branch references `experience/assets/elder.glb`, which is not comm
 - Full in-browser render, animation transition, contact, voxel floor and gamepad testing require a desktop browser and must be performed locally. Static file/GLB validation is not an end-to-end browser test.
 - This branch is independent. `main` and `backup/2026-11-11-original-viewer` remain unchanged.
 
+
+
+## Critical Elder rig correction — November 12 (broken GLB normalization)
+
+**Supersedes the November 12 root-normalization instructions above.** The previous ZIP's `elder.glb` was broken by manually changing the armature-root rotation and 0.01 scale while leaving inverse-bind matrices unchanged. That invalidated skinning and caused character polygons to stretch tens of metres and intersect the first-person camera. Discard that normalized GLB.
+
+**Correct installation**: take the unmodified `Elder_NLA_wMesh.glb` exported directly from Blender, copy it to `experience/assets/elder.glb` (rename only; do not edit GLB transforms). The provided replacement local-test ZIP includes this original binary. The imported armature must retain its root 0.01 scale and +90° X rotation. The PlayCanvas code creates an independent placement parent and applies world position, yaw, and 1.7x scene scale to the parent only, leaving the skinned GLB hierarchy intact.
+
+The original GLB has 809,854 weighted vertices, 33 joints, one mesh, and the named clips `mixamo.com_Idle`, `NlaTrack_Talking`, `NlaTrack_Working`. The original rest-pose skinning bounds are approximately 0.93 m wide, 1.00 m high, 0.33 m deep; the damaged normalized file incorrectly expands to about 92.85 x 33.48 x 100 m. Do not "fix" this by camera clipping or lowering scene scale.
+
+Test plan: restore unmodified GLB; open experience; watch Elder idle by the hearth; approach and interact to trigger Talk; leave dialogue to return to Idle; verify Elder body collision, no polygons through camera, and original viewer still runs at root URL. Full rendered browser/interaction validation must still be performed in local browser.
+
