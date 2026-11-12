@@ -36,3 +36,20 @@ body.dialogue-open #crosshair,body.started #welcome {display:none}
 #fatal {position:fixed;top:20%;left:10%;right:10%;padding:24px;background:#421e18;color:#fff;border:2px solid #f39a6b;z-index:20;font-size:15px}
 @media(max-width:600px){.old-viewer{display:none}.brand strong{font-size:11px}.brand small{font-size:8px}.quiet {padding:8px}.dialogue{bottom:12px;padding:14px}.dialogue-text {margin:10px 0;min-height:30px;font-size:17px}.choice{padding:9px}.touchpad{width:100px;height:100px}.touch-label{line-height:100px}#mobile-interact{bottom:136px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.001ms!important;transition-duration:.001ms!important}}
+
+/* Adventure v0.3: accessible inventory, inspection, pause/reset panels. */
+.adventure-modal {z-index:12;background:rgba(11,8,6,.76);}
+.adventure-modal .modal-card {width:min(580px,calc(100vw - 24px));}
+.modal-title {font:normal clamp(27px,3vw,38px) Georgia,serif;margin:12px 0;color:var(--ink);}
+.modal-description {font-size:15px;line-height:1.65;color:#e3d0b2;}
+.modal-actions {display:grid;grid-template-columns:1fr;gap:9px;margin-top:18px;max-height:40dvh;overflow:auto;}
+.modal-actions button {justify-content:flex-start;min-height:42px;text-align:left;padding:10px 15px;}
+.modal-details {font-size:11px;line-height:1.6;color:#bca884;margin-top:15px;}
+.dialogue-footer #dialogue-back {margin-left:12px;}
+.top-actions {flex-wrap:wrap;justify-content:flex-end;}
+#dialogue-back {white-space:nowrap;min-height:32px;}
+@media(max-width:750px) {
+  .top-actions .quiet {font-size:11px;padding:6px 8px;}
+  .dialogue {max-height:62dvh;overflow:auto;}
+  .modal-actions button {min-height:38px;}
+}
