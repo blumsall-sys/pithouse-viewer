@@ -1,23 +1,34 @@
 {
   "version": 1,
   "name": "Pithouse · Elder Introduction",
-  "notes": "Prototype positions. Replace with Blender-authored coordinates. Historical narrative content is illustrative and needs community review.",
+  "notes": "Pithouse placement calibrated from original SuperSplat settings: SOG rotates +180° on Z, while camera, NPC and annotation positions remain in original viewer world coordinates. Historical dialogue is illustrative pending cultural review.",
   "environment": {
     "splat": "../pithouse.sog",
     "legacyAnnotations": "../settings.json",
-    "propsGlb": null
+    "propsGlb": null,
+    "splatRotation": [
+      0,
+      0,
+      180
+    ],
+    "splatPosition": [
+      0,
+      0,
+      0
+    ]
   },
   "spawn": {
     "position": [
-      2,
-      2,
-      -2
+      -0.19832758605480194,
+      2.122495651245117,
+      -3.549173355102539
     ],
     "lookAt": [
-      0,
-      1,
-      0
-    ]
+      -0.9174435646114875,
+      1.1552601939224076,
+      3.7579871417393766
+    ],
+    "note": "Interior camera copied from the original settings.json Center Pole annotation camera (preserves viewer/world coordinates)."
   },
   "movement": {
     "speed": 2.5,
@@ -53,20 +64,22 @@
       "id": "elder",
       "name": "Elder",
       "position": [
+        0.95,
         0,
-        0,
-        1.6
+        2.2
       ],
       "yaw": 180,
       "model": null,
       "scale": 1,
-      "interactRadius": 4.5,
+      "interactRadius": 2.35,
       "dialogue": "welcome",
       "animationClips": {
         "Idle": "Idle",
         "Talk": "Talk",
         "Gesture": "Gesture"
-      }
+      },
+      "placementNote": "Stand by the fire/ember area (-0.181,0.03,1.259) between the center pole (.703,2.154,4.050); fine-tune using Blender authored scene.",
+      "autoStartDialogue": false
     }
   ],
   "hotspots": [],
@@ -168,5 +181,10 @@
         }
       ]
     }
+  },
+  "startup": {
+    "autoDialogue": false,
+    "playerAction": "explore",
+    "hint": "Walk over to the Elder, look toward them and press E (or tap Interact) to talk."
   }
 }
