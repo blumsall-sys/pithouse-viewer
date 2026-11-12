@@ -16,32 +16,46 @@ function newButton(parent,text,handler,cls='secondary') {
   const b=elem('button',cls,parent,text); b.type='button';b.addEventListener('click',handler);return b;
 }
 class WalkCollision {
+  // Locomotion controller in voxel/world space. Camera shots never modify nav state.
   constructor(pc,voxel,manifest) {
-    this.pc=pc;this.voxel=voxel;this.scene=manifest;
+    this.pc=pc; this.voxel=voxel; this.scene=manifest;
     this.eyeHeight=manifest.movement?.eyeHeight??1.6;
-    this.radius=manifest.movement?.radius??.2;
-    this.feetY=0;this.vy=0;this.velocity=[0,0];this.travel=0;
+    this.radius=manifest.movement?.radius??.24;
+    this.feetY=0;this.vy=0;this.grounded=false;this.groundLost=0;
+    this.velocity=[0,0];this.travel=0;
+    this._lastFloor=null;
   }
   static async load(pc,manifest) {
     const url=manifest.environment?.voxelJson||'../scene.voxel.json';
     const bin=manifest.environment?.voxelBin||'../scene.voxel.bin';
-    if(typeof pc.VoxelOccupancy!=='function')throw Error('PlayCanvas VoxelOccupancy is unavailable in this engine version');
+    if(typeof pc.VoxelOccupancy!=='function')throw Error('PlayCanvas VoxelOccupancy unavailable');
     const [a,b]=await Promise.all([fetch(url),fetch(bin)]);
     if(!a.ok||!b.ok)throw Error('Voxel files unavailable ('+a.status+'/'+b.status+')');
     return new pc.VoxelOccupancy(await a.json(),await b.arrayBuffer());
   }
-  floorAt(x,z,previousFoot,maxRise=.5,maxDrop=2.1) {
-    if(!this.voxel)return null;
-    const high=previousFoot+maxRise+.2,dist=maxRise+maxDrop+.2;
+  rawFloor(x,z,foot,rise=.45,drop=1.4) {
+    if(!this.voxel)return Number(this.scene.movement?.fallbackFloorY??0);
+    // Start just above the expected floor, never at camera/head height.
+    const high=foot+rise+.12;
     const ray=new this.pc.Ray(new this.pc.Vec3(x,high,z), new this.pc.Vec3(0,-1,0));
     const point=new this.pc.Vec3(),normal=new this.pc.Vec3();
-    if(!this.voxel.raycast(ray,dist,point,normal))return null;
-    // Floor candidate must be generally upward-facing; avoid mistaking side walls for floors.
-    if(normal.y<.5)return null;
+    if(!this.voxel.raycast(ray,rise+drop+.16,point,normal))return null;
+    if(normal.y<.6)return null;
     return point.y;
   }
+  floorAt(x,z,foot,rise=.45,drop=1.4) {
+    // Median of footprint probes prevents one rough voxel/tile from bouncing the eye.
+    const r=this.radius*.65,values=[];
+    for(const [dx,dz] of [[0,0],[r,0],[-r,0],[0,r],[0,-r]]){
+      const y=this.rawFloor(x+dx,z+dz,foot,rise,drop);
+      if(Number.isFinite(y))values.push(y);
+    }
+    if(!values.length)return null;
+    values.sort((a,b)=>a-b);
+    return values[Math.floor(values.length/2)];
+  }
   solid(x,y,z) {
-    if(this.voxel&&this.voxel.isSolid(new this.pc.Vec3(x,y,z)))return true;
+    if(this.voxel?.isSolid(new this.pc.Vec3(x,y,z)))return true;
     for(const c of(this.scene.colliders||[])) {
       if(c.enabled===false||c.kind==='floor'||c.kind==='trigger'||!c.center||!c.size)continue;
       if(Math.abs(x-c.center[0])<=c.size[0]*.5&&Math.abs(y-c.center[1])<=c.size[1]*.5&&Math.abs(z-c.center[2])<=c.size[2]*.5)return true;
@@ -53,66 +67,86 @@ class WalkCollision {
     if(bounds) {
       const mn=bounds.getMin(),mx=bounds.getMax();
       if(x<mn.x+this.radius||x>mx.x-this.radius||z<mn.z+this.radius||z>mx.z-this.radius)return false;
-    } else {
+    }else {
       const b=this.scene.movement?.bounds;
       if(b&&(x<b.min[0]+this.radius||x>b.max[0]-this.radius||z<b.min[2]+this.radius||z>b.max[2]-this.radius))return false;
     }
-    const r=this.radius*0.84;
-    for(const h of [.16,.5,1.0,1.48]) {
-      for(const [ox,oz] of [[0,0],[r,0],[-r,0],[0,r],[0,-r],[r*.7,r*.7],[-r*.7,r*.7],[r*.7,-r*.7],[-r*.7,-r*.7]]) {
-        if(this.solid(x+ox,foot+h,z+oz))return false;
+    const r=this.radius*.85;
+    for(const h of [.16,.55,1.05,1.45]) {
+      for(const [dx,dz] of [[0,0],[r,0],[-r,0],[0,r],[0,-r],[r*.7,r*.7],[-r*.7,r*.7]]) {
+        if(this.solid(x+dx,foot+h,z+dz))return false;
       }
     }
     return true;
   }
   reset(camera,pos) {
-    const eye=pos||camera.getPosition().clone();
-    this.feetY=eye.y-this.eyeHeight;
-    const floor=this.floorAt(eye.x,eye.z,this.feetY,1.0,5);
-    if(floor!==null&&Number.isFinite(floor))this.feetY=floor+.035;
-    this.velocity=[0,0];this.vy=0;this.travel=0;
+    const eye=pos?.clone?.()||camera.getPosition().clone();
+    const foot=eye.y-this.eyeHeight;
+    const floor=this.floorAt(eye.x,eye.z,foot,1.2,4);
+    this.feetY=Number.isFinite(floor)?floor+.055:foot;
+    this._lastFloor=Number.isFinite(floor)?floor:null;
+    this.grounded=Number.isFinite(floor);this.groundLost=0;
+    this.vy=0;this.velocity=[0,0];this.travel=0;
     camera.setPosition(eye.x,this.feetY+this.eyeHeight,eye.z);
+  }
+  jump() {
+    if(!this.grounded)return false;
+    this.grounded=false;this.vy=4.1;this.groundLost=0;return true;
   }
   move(camera,dt,moveX,moveZ,yaw,enabled) {
     if(!enabled)return;
-    const p=camera.getPosition().clone(),len=Math.hypot(moveX,moveZ),normalizer=Math.max(1,len);
-    const a=yaw*Math.PI/180, mx=moveX/normalizer,mz=moveZ/normalizer;
-    const speed=this.scene.movement?.speed??2.25;
-    let dx=(mx*Math.cos(a)-mz*Math.sin(a))*speed;
-    let dz=(-mx*Math.sin(a)-mz*Math.cos(a))*speed;
-    const t=1-Math.exp(-dt*13);
-    this.velocity[0]+=(dx-this.velocity[0])*t;this.velocity[1]+=(dz-this.velocity[1])*t;
+    dt=Math.min(.05,Math.max(0,dt));
+    const pos=camera.getPosition().clone();
+    const len=Math.hypot(moveX,moveZ),norm=Math.max(1,len);
+    const a=yaw*Math.PI/180,x=moveX/norm,z=moveZ/norm;
+    const speed=this.scene.movement?.speed??2.15;
+    const desiredX=(x*Math.cos(a)-z*Math.sin(a))*speed;
+    const desiredZ=(-x*Math.sin(a)-z*Math.cos(a))*speed;
+    const response=1-Math.exp(-dt*12);
+    this.velocity[0]+=(desiredX-this.velocity[0])*response;
+    this.velocity[1]+=(desiredZ-this.velocity[1])*response;
+    // Independently slide on X and Z; feetY is updated only once after movement.
     const travel=Math.hypot(this.velocity[0],this.velocity[1])*dt;
-    const steps=Math.max(1,Math.ceil(travel/.09)), step=dt/steps;
+    const steps=Math.max(1,Math.ceil(travel/.08)),time=dt/steps;
     for(let i=0;i<steps;i++){
-      const sx=this.velocity[0]*step,sz=this.velocity[1]*step;
-      for(const [axis,d] of [['x',sx],['z',sz]]) {
-        const tx=p.x+(axis==='x'?d:0),tz=p.z+(axis==='z'?d:0);
-        const newFloor=this.floorAt(tx,tz,this.feetY,.32,1);
-        const candidate=newFloor===null?this.feetY:Math.max(this.feetY-.28,newFloor+.035);
-        if(candidate>this.feetY+.33||!this.free(tx,tz,candidate))continue;
-        p.x=tx;p.z=tz;
-        if(newFloor!==null)this.feetY=Math.max(this.feetY-.15,candidate);
+      for(const [axis,delta] of [['x',this.velocity[0]*time],['z',this.velocity[1]*time]]){
+        if(Math.abs(delta)<.000001)continue;
+        const tx=pos.x+(axis==='x'?delta:0),tz=pos.z+(axis==='z'?delta:0);
+        const floor=this.grounded?this.floorAt(tx,tz,this.feetY,.42,.7):null;
+        if(this.grounded&&floor!==null&&floor-this.feetY>.32)continue;
+        if(!this.free(tx,tz,this.feetY))continue;
+        pos.x=tx;pos.z=tz;
       }
     }
-    const ground=this.floorAt(p.x,p.z,this.feetY,.32,2.2);
-    if(ground!==null) {
-      const target=ground+.035;
-      // Snap down modest stairs, soften uneven voxel floor.
-      this.feetY+=(target-this.feetY)*clamp(dt*14,0,1);
-      this.vy=0;
-    } else {
-      this.vy=Math.max(-14,this.vy-9.8*dt);
-      this.feetY+=this.vy*dt;
+    const detected=this.floorAt(pos.x,pos.z,this.feetY,this.grounded?.45:.65,1.7);
+    if(this.grounded) {
+      if(Number.isFinite(detected)) {
+        this.groundLost=0;
+        const target=detected+.055;
+        const delta=target-this.feetY;
+        // 5cm voxel quantization: ignore small oscillating floor differences.
+        if(Math.abs(delta)>.055) {
+          const smooth=1-Math.exp(-dt*6);
+          this.feetY+=Math.max(-.09,Math.min(.09,delta*smooth));
+        }
+        this._lastFloor=detected;
+      }else if((this.groundLost+=dt)>.18){
+        this.grounded=false;this.vy=0;
+      }
+    }else {
+      this.vy-=12.5*dt;
+      const next=this.feetY+this.vy*dt;
+      if(this.vy<=0&&Number.isFinite(detected)&&next<=detected+.055&&this.feetY>=detected-.18) {
+        this.feetY=detected+.055;this.vy=0;this.grounded=true;this.groundLost=0;
+      }else this.feetY=next;
     }
     if(!this.voxel) {
-      // Do not silently imply voxel collision is active when a file is missing.
-      const safe=Number(this.scene.movement?.fallbackFloorY ?? 0);
-      this.feetY=Math.max(this.feetY,safe); this.vy=0;
+      const floor=Number(this.scene.movement?.fallbackFloorY??0);
+      if(this.feetY<floor){this.feetY=floor;this.vy=0;this.grounded=true;}
     }
-    this.travel+=travel;
-    const bob=travel>.0005&&ground!==null?Math.sin(this.travel*8)*.009:0;
-    camera.setPosition(p.x,this.feetY+this.eyeHeight+bob,p.z);
+    this.travel+=Math.hypot(pos.x-camera.getPosition().x,pos.z-camera.getPosition().z);
+    // No procedural vertical head-bob: physically grounded camera stays stable.
+    camera.setPosition(pos.x,this.feetY+this.eyeHeight,pos.z);
   }
 }
 class Ambience {
