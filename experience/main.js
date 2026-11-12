@@ -187,7 +187,12 @@ function updateMovement(dt) {
 function canInteract(item) {
   if(!state.started || state.talking || !item) return false;
   if(item.type==='collectible'&&state.collected.has(item.id))return false;
-  return camera.getPosition().distance(item.position) <= item.radius;
+  // The interaction anchor can be at eye/torso or ground height. Use a horizontal
+  // reach check with a vertical limit so ground collectibles are actually reachable.
+  const eye=camera.getPosition(),point=item.position;
+  const horizontal=Math.hypot(eye.x-point.x,eye.z-point.z);
+  const height=Math.abs(eye.y-point.y);
+  return horizontal<=item.radius && height<=(item.type==='collectible'?2.4:2.1);
 }
 function nearestInteraction() {
   const pos=camera.getPosition(),dir=camera.forward;
