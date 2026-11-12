@@ -15,25 +15,27 @@
       0,
       0,
       0
-    ]
+    ],
+    "voxelJson": "../scene.voxel.json",
+    "voxelBin": "../scene.voxel.bin"
   },
   "spawn": {
     "position": [
-      -0.19832758605480194,
-      2.122495651245117,
-      -3.549173355102539
+      0.2,
+      1.65,
+      -1.6
     ],
     "lookAt": [
-      -0.9174435646114875,
-      1.1552601939224076,
-      3.7579871417393766
+      0.6,
+      1.45,
+      2.4
     ],
-    "note": "Camera coordinates and 95° FOV from original SuperSplat settings.json center-pole annotation, in the original world frame.",
-    "fov": 95
+    "note": "Player eye at approximately 1.65 m, positioned 1.95 m toward the hearth from original wall-edge annotation camera; runtime raycasts against voxels to find the floor.",
+    "fov": 78
   },
   "movement": {
-    "speed": 2.5,
-    "radius": 0.28,
+    "speed": 2.1,
+    "radius": 0.24,
     "eyeHeight": 1.6,
     "bounds": {
       "min": [
@@ -46,7 +48,8 @@
         8,
         12
       ]
-    }
+    },
+    "fallbackFloorY": 0.03
   },
   "lighting": [
     {
@@ -90,11 +93,12 @@
       "name": "Study Stone",
       "position": [
         -1,
-        0.8,
-        2
+        0.3,
+        2.7
       ],
-      "radius": 1.7,
-      "note": "A demonstration collectible. Replace with an object and approved cultural interpretation."
+      "radius": 1.3,
+      "note": "A demonstration study stone. Examine it before deciding whether to collect it. You can ask the Elder about what you've found.",
+      "consume": false
     }
   ],
   "dialogue": {
@@ -115,16 +119,12 @@
           "text": "I just want to look around.",
           "mode": "explore"
         }
-      ]
+      ],
+      "camera": "elder"
     },
     "building": {
       "speaker": "Elder",
       "text": "Look toward the center pole. We can examine the structure together and consider how this space was built.",
-      "focus": [
-        0.7,
-        2.15,
-        4.05
-      ],
       "minDecisionSeconds": 7,
       "choices": [
         {
@@ -139,7 +139,8 @@
           "text": "Let me explore.",
           "mode": "explore"
         }
-      ]
+      ],
+      "camera": "elder"
     },
     "pole": {
       "speaker": "Elder",
@@ -154,30 +155,57 @@
           "text": "Look around.",
           "mode": "explore"
         }
-      ]
+      ],
+      "camera": "elder"
     },
     "warmth": {
       "speaker": "Elder",
       "text": "There is an important distinction between a fire and a place where warm embers and stones are collected. Let's look at the annotated area.",
-      "focus": [
-        -0.18,
-        0.03,
-        1.26
-      ],
       "minDecisionSeconds": 8,
       "choices": [
         {
-          "text": "Show me the annotation.",
-          "action": "annotation",
-          "annotationIndex": 1,
-          "mode": "explore"
+          "text": "Tell me more about warmth.",
+          "next": "warmthDetail"
         },
         {
-          "text": "Another topic, please.",
+          "text": "I have another question.",
           "next": "welcome"
         },
         {
-          "text": "Explore for myself.",
+          "text": "I'll look around.",
+          "mode": "explore"
+        }
+      ],
+      "camera": "hearth"
+    },
+    "warmthDetail": {
+      "speaker": "Elder",
+      "text": "This marked area was used for collecting warm stones and embers. When you are ready, we can return to your other questions.",
+      "camera": "hearth",
+      "minDecisionSeconds": 4,
+      "choices": [
+        {
+          "text": "Ask about something else.",
+          "next": "welcome"
+        },
+        {
+          "text": "Explore the pithouse.",
+          "mode": "explore"
+        }
+      ]
+    },
+    "stoneDiscussion": {
+      "speaker": "Elder",
+      "camera": "elder",
+      "text": "You have found the study stone. We can look at how people made use of materials and objects in their daily lives. This is example text pending historical review.",
+      "minDecisionSeconds": 5,
+      "choices": [
+        {
+          "text": "Ask another question.",
+          "next": "welcome"
+        },
+        {
+          "text": "Return to exploring.",
           "mode": "explore"
         }
       ]
@@ -186,6 +214,52 @@
   "startup": {
     "autoDialogue": false,
     "playerAction": "explore",
-    "hint": "Walk over to the Elder, look toward them and press E (or tap Interact) to talk."
+    "hint": "Walk to the Elder and press E, or use gamepad A to interact."
+  },
+  "cameras": {
+    "elder": {
+      "position": [
+        1.35,
+        1.62,
+        0.75
+      ],
+      "target": [
+        0.95,
+        1.37,
+        2.2
+      ],
+      "fov": 66,
+      "duration": 0.65,
+      "note": "Conversation close-up from in front of the Elder looking toward their upper torso."
+    },
+    "hearth": {
+      "position": [
+        0.5,
+        2.24,
+        -0.4
+      ],
+      "target": [
+        -0.18,
+        0.07,
+        1.26
+      ],
+      "fov": 68,
+      "duration": 0.85,
+      "note": "Elevated view toward original annotated warm-ember collection location."
+    },
+    "studyStone": {
+      "position": [
+        -0.55,
+        1.45,
+        1.35
+      ],
+      "target": [
+        -1,
+        0.3,
+        2.7
+      ],
+      "fov": 63,
+      "duration": 0.8
+    }
   }
 }
