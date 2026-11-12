@@ -153,7 +153,7 @@ export class AdventureRuntime {
   constructor({pc,app,camera,scene,state,showNode,closeDialogue,nearestInteraction,interactWith,status,dialogueButtons}) {
     Object.assign(this,{pc,app,camera,scene,state,showNode,closeDialogue,nearestInteraction,interactWith,status,dialogueButtons});
     this.walker=null;this.ambience=new Ambience();this.gamepadAxes=[0,0];this.prevButtons=[];
-    this.dialogueChoice=0;this.transition=null;this.savedPose=null;this.shotTime=0;this.currentShot=null;
+    this.dialogueChoice=0;this.modalChoice=0;this.transition=null;this.savedPose=null;this.shotTime=0;this.currentShot=null;
     this.inventory=[];this.modal=null;this.backAction=null;this.pause=null;
     this.settings={};
     this.installUI();
@@ -314,10 +314,11 @@ export class AdventureRuntime {
   }
   openModal(title,description,choices,subtitle='') {
     if(document.pointerLockElement)document.exitPointerLock();
-    this.pause.hidden=false;this.modalTitle.textContent=title;this.modalText.textContent=description||'';
+    this.pause.hidden=false;this.modalChoice=0;this.modalTitle.textContent=title;this.modalText.textContent=description||'';
     this.modalDetails.textContent=subtitle;this.modalButtons.replaceChildren();
     for(const item of choices)newButton(this.modalButtons,item.label,item.action,item.label.startsWith('Take')?'primary':'secondary');
     this.backAction=()=>this.closeModal();
+    this.modalButtons.querySelector('button')?.focus();
   }
   closeModal(){this.pause.hidden=true;this.backAction=null;}
   back() {if(!this.pause.hidden){this.closeModal();return;}if(this.state.talking){this.cancelDialogue();return;}this.openPause();}
@@ -345,7 +346,15 @@ export class AdventureRuntime {
     }
     if(ev.code==='KeyI'&&!ev.repeat){if(this.pause.hidden)this.openInventory();else this.closeModal();return true;}
     if(ev.code==='KeyP'&&!ev.repeat){this.openPause();return true;}
-    if(!this.pause.hidden){if(ev.code==='Enter'||ev.code==='Space'){this.modalButtons.querySelector('button')?.click();return true;}return true;}
+    if(!this.pause.hidden){
+      const list=[...this.modalButtons.querySelectorAll('button')];
+      if(ev.code==='ArrowDown'||ev.code==='ArrowUp'){
+        this.modalChoice=clamp(this.modalChoice+(ev.code==='ArrowDown'?1:-1),0,Math.max(0,list.length-1));
+        list[this.modalChoice]?.focus();return true;
+      }
+      if(ev.code==='Enter'||ev.code==='Space'){list[this.modalChoice]?.click();return true;}
+      return true;
+    }
     if(this.state.talking) {
       if(['ArrowUp','ArrowDown'].includes(ev.code)) {
         const btn=[...this.dialogueButtons().querySelectorAll('button')];
@@ -369,18 +378,23 @@ export class AdventureRuntime {
     }
     const active=(i)=>Boolean(pad.buttons[i]?.pressed);
     const edge=(i)=>active(i)&&!this.prevButtons[i];
+    if(!this.state.started&&edge(0))byId('start-button')?.click();
     if(edge(9)){if(this.pause.hidden)this.openPause();else this.closeModal();}
     if(edge(1)){this.back();}
     if(edge(3)){this.openInventory();}
-    if(this.state.talking&&this.pause.hidden){
+    if(!this.pause.hidden){
+      const list=[...this.modalButtons.querySelectorAll('button')];
+      if(edge(13))this.modalChoice=Math.min(list.length-1,this.modalChoice+1);
+      if(edge(12))this.modalChoice=Math.max(0,this.modalChoice-1);
+      list[this.modalChoice]?.focus();
+      if(edge(0))list[this.modalChoice]?.click();
+    }else if(this.state.talking&&this.pause.hidden){
       const btn=[...this.dialogueButtons().querySelectorAll('button')];
       if(edge(13))this.dialogueChoice=Math.min(btn.length-1,this.dialogueChoice+1);
       if(edge(12))this.dialogueChoice=Math.max(0,this.dialogueChoice-1);
       btn[this.dialogueChoice]?.focus();
       if(edge(0))btn[this.dialogueChoice]?.click();
-    }else if(!this.pause.hidden){
-      if(edge(0))this.modalButtons.querySelector('button')?.click();
-    }else if(edge(0))this.interactWith(this.nearestInteraction());
+    }else if(this.state.started&&edge(0))this.interactWith(this.nearestInteraction());
     this.prevButtons=pad.buttons.map(b=>Boolean(b?.pressed));
   }
 }
