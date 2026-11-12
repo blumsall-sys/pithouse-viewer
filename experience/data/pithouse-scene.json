@@ -28,7 +28,8 @@
       1.1552601939224076,
       3.7579871417393766
     ],
-    "note": "Interior camera copied from the original settings.json Center Pole annotation camera (preserves viewer/world coordinates)."
+    "note": "Camera coordinates and 95° FOV from original SuperSplat settings.json center-pole annotation, in the original world frame.",
+    "fov": 95
   },
   "movement": {
     "speed": 2.5,
@@ -78,7 +79,7 @@
         "Talk": "Talk",
         "Gesture": "Gesture"
       },
-      "placementNote": "Stand by the fire/ember area (-0.181,0.03,1.259) between the center pole (.703,2.154,4.050); fine-tune using Blender authored scene.",
+      "placementNote": "Starter approximation: near original hearth annotation and beside the base of the center pole. Adjust with Blender NPC_Elder placement once mesh is overlaid.",
       "autoStartDialogue": false
     }
   ],
