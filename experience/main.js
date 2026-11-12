@@ -238,7 +238,7 @@ function typeDialogue(dt) {
   state.timer+=dt;
   if(state.typing) {
     state.typeElapsed+=dt;
-    const target=Math.min(state.typeText.length,Math.floor(state.typeElapsed*33));
+    const target=Math.min(state.typeText.length,Math.floor(state.typeElapsed*62));
     if(target!==state.shown){state.shown=target;safeText(ui['dialogue-text'],state.typeText.slice(0,target));}
     if(state.shown>=state.typeText.length)state.typing=false;
   }
@@ -285,7 +285,7 @@ function showAnnotation(index) {
 }
 function closeDialogueForChoice() {
   state.talking=false;state.typing=false;ui.dialogue.hidden=true;ui['dialogue-options'].replaceChildren();
-  document.body.classList.remove('dialogue-open');setAnimMode(0);
+  document.body.classList.remove('dialogue-open');
 }
 function choose(choice) {
   if(state.typing||state.timer<state.minSeconds)return;
