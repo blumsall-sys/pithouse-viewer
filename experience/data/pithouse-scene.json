@@ -49,7 +49,10 @@
         12
       ]
     },
-    "fallbackFloorY": 0.03
+    "fallbackFloorY": 0.03,
+    "groundSmoothing": 6,
+    "jumpVelocity": 4.1,
+    "headBob": 0
   },
   "lighting": [
     {
@@ -73,17 +76,18 @@
         2.2
       ],
       "yaw": 180,
-      "model": null,
+      "model": "./assets/elder.glb",
       "scale": 1,
       "interactRadius": 2.35,
       "dialogue": "welcome",
       "animationClips": {
         "Idle": "Idle",
         "Talk": "Talk",
-        "Gesture": "Gesture"
+        "FireWork": "FireWork"
       },
       "placementNote": "Starter approximation: near original hearth annotation and beside the base of the center pole. Adjust with Blender NPC_Elder placement once mesh is overlaid.",
-      "autoStartDialogue": false
+      "autoStartDialogue": false,
+      "notes": "Convert user-supplied FBX clips via experience/tools/build_elder_glb.py (Blender) to elder.glb; matching mixamorig skeleton confirmed."
     }
   ],
   "hotspots": [],
@@ -104,8 +108,8 @@
   "dialogue": {
     "welcome": {
       "speaker": "Elder",
-      "text": "Welcome inside. What would you like to learn about today?",
-      "minDecisionSeconds": 7,
+      "text": "Welcome inside the Pithouse. What would you like to learn about?",
+      "minDecisionSeconds": 0,
       "choices": [
         {
           "text": "How was this home built?",
@@ -125,43 +129,43 @@
     "building": {
       "speaker": "Elder",
       "text": "Look toward the center pole. We can examine the structure together and consider how this space was built.",
-      "minDecisionSeconds": 7,
+      "minDecisionSeconds": 0,
       "choices": [
         {
-          "text": "Tell me about the center pole.",
+          "text": "What is the center pole for?",
           "next": "pole"
         },
         {
-          "text": "What else can I learn?",
-          "next": "welcome"
+          "text": "Ask something else.",
+          "next": "topics"
         },
         {
-          "text": "Let me explore.",
+          "text": "Explore.",
           "mode": "explore"
         }
       ],
-      "camera": "elder"
+      "camera": "centerPole"
     },
     "pole": {
       "speaker": "Elder",
       "text": "The center pole is a good place to start examining the construction. Select its marker to inspect the original annotation.",
-      "minDecisionSeconds": 6,
+      "minDecisionSeconds": 0,
       "choices": [
         {
-          "text": "Ask another question.",
-          "next": "welcome"
+          "text": "Another question.",
+          "next": "topics"
         },
         {
-          "text": "Look around.",
+          "text": "Explore.",
           "mode": "explore"
         }
       ],
-      "camera": "elder"
+      "camera": "centerPole"
     },
     "warmth": {
       "speaker": "Elder",
       "text": "There is an important distinction between a fire and a place where warm embers and stones are collected. Let's look at the annotated area.",
-      "minDecisionSeconds": 8,
+      "minDecisionSeconds": 0,
       "choices": [
         {
           "text": "Tell me more about warmth.",
@@ -169,7 +173,7 @@
         },
         {
           "text": "I have another question.",
-          "next": "welcome"
+          "next": "topics"
         },
         {
           "text": "I'll look around.",
@@ -182,11 +186,11 @@
       "speaker": "Elder",
       "text": "This marked area was used for collecting warm stones and embers. When you are ready, we can return to your other questions.",
       "camera": "hearth",
-      "minDecisionSeconds": 4,
+      "minDecisionSeconds": 0,
       "choices": [
         {
           "text": "Ask about something else.",
-          "next": "welcome"
+          "next": "topics"
         },
         {
           "text": "Explore the pithouse.",
@@ -198,14 +202,34 @@
       "speaker": "Elder",
       "camera": "elder",
       "text": "You have found the study stone. We can look at how people made use of materials and objects in their daily lives. This is example text pending historical review.",
-      "minDecisionSeconds": 5,
+      "minDecisionSeconds": 0,
       "choices": [
         {
           "text": "Ask another question.",
-          "next": "welcome"
+          "next": "topics"
         },
         {
           "text": "Return to exploring.",
+          "mode": "explore"
+        }
+      ]
+    },
+    "topics": {
+      "speaker": "Elder",
+      "text": "What would you like to explore next?",
+      "camera": "elder",
+      "minDecisionSeconds": 0,
+      "choices": [
+        {
+          "text": "Tell me about the center pole.",
+          "next": "pole"
+        },
+        {
+          "text": "Tell me about warmth.",
+          "next": "warmth"
+        },
+        {
+          "text": "I want to explore on my own.",
           "mode": "explore"
         }
       ]
@@ -260,6 +284,21 @@
       ],
       "fov": 63,
       "duration": 0.8
+    },
+    "centerPole": {
+      "position": [
+        1.4,
+        1.82,
+        0.2
+      ],
+      "target": [
+        0.70346018,
+        2.15383736,
+        4.04968417
+      ],
+      "fov": 65,
+      "duration": 0.72,
+      "note": "Uses actual center-pole marker from original SuperSplat settings.json; shot authored to look upward along pole."
     }
   }
 }
