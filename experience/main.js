@@ -42,7 +42,10 @@ function primitive(type,name,pos,scale,color,opacity=1) {
 }
 function putCamera() {
   const spawn=state.scene.spawn;
+  // These coordinates are the original SuperSplat viewer's world-space camera.
+  // Rotate the SOG separately, not the camera or the annotations.
   camera.setPosition(...spawn.position);
+  if(Number.isFinite(spawn.fov)) camera.camera.fov=spawn.fov;
   const from=v3(spawn.position), to=v3(spawn.lookAt || [0,1,0]);
   aimAt(to,from);
 }
@@ -50,7 +53,7 @@ function aimAt(target, source) {
   const dir=target.clone().sub(source);const horizontal=Math.hypot(dir.x,dir.z);
   state.yaw=Math.atan2(-dir.x,-dir.z)*180/Math.PI;
   state.pitch=clamp(Math.atan2(dir.y,Math.max(.001,horizontal))*180/Math.PI,-76,76);
-  camera.setEulerAngles(-state.pitch,state.yaw,0);
+  camera.setEulerAngles(state.pitch,state.yaw,0);
 }
 function createPlayer() {
   player=new pc.Entity('Viewer Position');
@@ -72,7 +75,8 @@ async function createSplat() {
   const splat=new pc.Entity('Pithouse SOG');
   splat.addComponent('gsplat',{asset});
   if(state.scene.environment.splatPosition) splat.setPosition(...state.scene.environment.splatPosition);
-  if(state.scene.environment.splatRotation) splat.setEulerAngles(...state.scene.environment.splatRotation);
+  // Apply SuperSplat's Z-axis correction. Do not rotate NPCs or annotation coordinates.
+  splat.setEulerAngles(...(state.scene.environment.splatRotation || [0,0,180]));
   if(state.scene.environment.splatScale) splat.setLocalScale(...state.scene.environment.splatScale);
   app.root.addChild(splat);
 }
@@ -117,7 +121,9 @@ function setAnimMode(n) { if(npcAnim){try{npcAnim.setInteger('mode',n);}catch(e)
 async function createCharacters() {
   for(const npc of (state.scene.characters||[])) {
     const position=v3(npc.position);
-    state.positions.push({type:'npc',name:npc.name||'Guide',position,id:npc.id||'npc',radius:npc.interactRadius||3.5,dialogue:npc.dialogue||'welcome'});
+    // Target the Elder's torso instead of their feet (eye-level camera).
+    const talkPoint=position.clone().add(new pc.Vec3(0,1.2,0));
+    state.positions.push({type:'npc',name:npc.name||'Guide',position:talkPoint,id:npc.id||'npc',radius:npc.interactRadius||2.35,dialogue:npc.dialogue||'welcome'});
     if(!npc.model){makeNPCFallback(npc);continue;}
     try {
       const a=await loadAsset(npc.model,'container',npc.name||'NPC');
@@ -143,7 +149,8 @@ function importAnnotations() {
   markerButtons=state.positions.map(item=>{
     const button=document.createElement('button');
     button.type='button';button.className='marker';button.textContent=item.type==='npc'?'✦ '+item.name:item.type==='collectible'?'✧ '+item.name:'◈ '+item.name;
-    button.addEventListener('click',()=>interactWith(item));
+    // A projected marker must not allow dialogue from across the room.
+    button.addEventListener('click',()=>{if(canInteract(item))interactWith(item);});
     ui.markers.appendChild(button);return {item,button};
   });
 }
@@ -175,17 +182,22 @@ function updateMovement(dt) {
   const nextZ=pos.clone();nextZ.z+=dz;if(!collisionHit(nextZ,r))pos.z=nextZ.z;
   camera.setPosition(pos);
 }
+function canInteract(item) {
+  if(!state.started || state.talking || !item) return false;
+  if(item.type==='collectible'&&state.collected.has(item.id))return false;
+  return camera.getPosition().distance(item.position) <= item.radius;
+}
 function nearestInteraction() {
   const pos=camera.getPosition(),dir=camera.forward;
-  const candidates=state.positions.filter(i=>i.type!=='collectible'||!state.collected.has(i.id)).map(i=>{
+  const candidates=state.positions.filter(canInteract).map(i=>{
     const delta=i.position.clone().sub(pos),distance=delta.length();
     const facing=delta.normalize().dot(dir);
     return {item:i,distance,facing};
-  }).filter(i=>i.distance<i.item.radius&&i.facing>.08).sort((a,b)=>b.facing-a.facing||a.distance-b.distance);
+  }).filter(i=>i.facing>.08).sort((a,b)=>b.facing-a.facing||a.distance-b.distance);
   return candidates[0]?.item||null;
 }
 function interactWith(item) {
-  if(!state.started||state.talking||!item)return;
+  if(!canInteract(item))return;
   switch(item.type) {
     case 'npc': showNode(item.dialogue);break;
     case 'annotation':showAnnotation(item.index);break;
@@ -270,10 +282,12 @@ function updateMarkers() {
     const p=item.position;
     if(item.type==='collectible'&&state.collected.has(item.id)){button.hidden=true;continue;}
     const d=p.clone().sub(eye),length=d.length();
-    if(d.dot(forward)<=0||length>Math.max(8,item.radius*2.8)){button.hidden=true;continue;}
+    if(d.dot(forward)<=0||length>Math.max(6,item.radius*2.2)){button.hidden=true;continue;}
     const screen=camera.camera.worldToScreen(p);
     const inside=screen.x>40&&screen.x<innerWidth-40&&screen.y>80&&screen.y<innerHeight-50;
-    button.hidden=!inside;if(inside){button.style.left=screen.x+'px';button.style.top=screen.y+'px';}
+    button.hidden=!inside;
+    button.disabled=!canInteract(item);
+    if(inside){button.style.left=screen.x+'px';button.style.top=screen.y+'px';}
   }
   const near=nearestInteraction();
   safeText(ui.prompt,near?'Press E / tap Interact · '+near.name:'');
@@ -281,7 +295,7 @@ function updateMarkers() {
 function onLook(dx,dy) {
   if(!state.started||state.talking||!ui.help.hidden)return;
   state.yaw-=dx*.17;state.pitch=clamp(state.pitch-dy*.16,-77,77);
-  camera.setEulerAngles(-state.pitch,state.yaw,0);
+  camera.setEulerAngles(state.pitch,state.yaw,0);
 }
 function handleInputs() {
   document.addEventListener('keydown',ev=>{
@@ -333,10 +347,9 @@ function handleInputs() {
     if(!state.ready)return;
     state.started=true;document.body.classList.add('started');ui.welcome.hidden=true;
     if(MOBILE)ui.touch.hidden=false;
-    status('Meet the Elder · use E to interact');
-    // A short opening shot leads to a decision prompt after 5 seconds.
+    status('Explore the pithouse · approach the Elder and press E to speak');
+    // Never launch Elder dialogue on a timer. The player chooses when to speak.
     state.since=clock;
-    setTimeout(()=>{if(state.started&&!state.talking)showNode('welcome');},5000);
   });
 }
 async function main() {
