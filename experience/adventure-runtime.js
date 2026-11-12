@@ -437,6 +437,8 @@ export class AdventureRuntime {
     if(edge(9)){if(this.pause.hidden)this.openPause();else this.closeModal();}
     if(edge(1)){this.back();}
     if(edge(3)){this.openInventory();}
+    // Dedicated jump (X) remains available even while near an interactable NPC.
+    if(edge(2)&&this.state.started&&!this.state.talking&&this.pause.hidden)this.walker?.jump();
     if(!this.pause.hidden){
       const list=[...this.modalButtons.querySelectorAll('button')];
       if(edge(13))this.modalChoice=Math.min(list.length-1,this.modalChoice+1);
