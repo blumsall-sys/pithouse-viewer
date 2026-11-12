@@ -97,28 +97,33 @@ function makeNPCFallback(npc) {
   body.setEulerAngles(0,npc.yaw||0,0);head.setEulerAngles(0,npc.yaw||0,0);
   return {body,head,badge};
 }
+// PlayCanvas Anim: assigned clips are states in the component's animation state graph.
+// Explicit crossfades are reliable on standalone Engine 2.x and avoid malformed
+// serialization/parameter versions (PlayCanvas docs: playing-animations).
+let currentElderMode='Idle';
+const ELDER_STATES={Idle:'Idle',Talk:'Talk',FireWork:'FireWork'};
 function makeAnimationGraph(entity,asset,npc) {
-  const tracks=Object.fromEntries(asset.resource.animations.map(a=>[a.resource.name,a.resource]));
-  const clipNames=npc.animationClips||{Idle:'Idle',Talk:'Talk',Gesture:'Gesture'};
-  if(!['Idle','Talk','Gesture'].every(s=>tracks[clipNames[s]])){
-    console.warn('Animation graph not activated: expected clip names missing',clipNames,Object.keys(tracks));return;
+  const clips=asset.resource?.animations||[];
+  const tracks=Object.fromEntries(clips.map(a=>[a.resource.name,a.resource]));
+  const names=npc.animationClips||ELDER_STATES;
+  const required=['Idle','Talk','FireWork'];
+  if(required.some(s=>!tracks[names[s]])) {
+    console.warn('Elder GLB missing clips. Found:',Object.keys(tracks),'expected:',names);
+    return;
   }
-  const graph={
-    layers:[{name:'Base',states:[{name:'START'},{name:'Idle',loop:true},{name:'Talk',loop:true},{name:'Gesture',loop:true}],
-      transitions:[{from:'START',to:'Idle'},
-        ...['Idle','Talk','Gesture'].flatMap(from=>['Idle','Talk','Gesture'].filter(to=>to!==from).map(to=>({
-          from,to,time:.2,conditions:[{parameterName:'mode',predicate:pc.ANIM_EQUAL_TO,value:{Idle:0,Talk:1,Gesture:2}[to]}]
-        })))]}],
-    parameters:{mode:{name:'mode',type:pc.ANIM_PARAMETER_INTEGER,value:0}}
-  };
   entity.addComponent('anim',{activate:true});
-  entity.anim.loadStateGraph(graph);
-  const layer=entity.anim.baseLayer;
-  for(const s of ['Idle','Talk','Gesture']) layer.assignAnimation(s,tracks[clipNames[s]]);
+  for(const name of required)entity.anim.assignAnimation(name,tracks[names[name]]);
   npcAnim=entity.anim;
-  setAnimMode(0);
+  npcAnim.baseLayer.play('Idle');
+  currentElderMode='Idle';
+  console.info('Elder animation states ready: Idle, Talk, FireWork');
 }
-function setAnimMode(n) { if(npcAnim){try{npcAnim.setInteger('mode',n);}catch(e){console.warn('Anim parameter mismatch',e);}} }
+function setAnimMode(mode) {
+  const stateName=typeof mode==='string'?mode:({0:'Idle',1:'Talk',2:'FireWork'}[mode]||'Idle');
+  if(!npcAnim||stateName===currentElderMode)return;
+  currentElderMode=stateName;
+  npcAnim.baseLayer.transition(stateName,.32);
+}
 async function createCharacters() {
   for(const npc of (state.scene.characters||[])) {
     const position=v3(npc.position);
@@ -206,7 +211,7 @@ function nearestInteraction() {
 function interactWith(item) {
   if(!canInteract(item))return;
   switch(item.type) {
-    case 'npc': showNode(item.dialogue);break;
+    case 'npc': showNode(adventure?.elderMet?'topics':(item.dialogue||'welcome'));break;
     case 'annotation':showAnnotation(item.index);break;
     case 'hotspot':item.dialogue?showNode(item.dialogue):showMessage(item.name,'This object is ready for an authored interaction.');break;
     case 'collectible':
@@ -214,10 +219,12 @@ function interactWith(item) {
   }
 }
 function closeDialogue() {
+  if('speechSynthesis'in window)speechSynthesis.cancel();
   const wasTalking=state.talking;
   if(wasTalking)adventure?.endDialogue();
   state.talking=false;state.typing=false;ui.dialogue.hidden=true;ui['dialogue-options'].replaceChildren();
   document.body.classList.remove('dialogue-open');setAnimMode(0);
+  state.keys.clear();
   status('Explore · E to interact · mouse to look');
 }
 function sayOutLoud(t) {
@@ -258,12 +265,13 @@ function openDialogue({speaker,text,choices=[],minDecisionSeconds=0,focus=null})
   safeText(ui.speaker,speaker||'Guide');safeText(ui['dialogue-text'],'');
   ui['dialogue-options'].replaceChildren();ui['dialogue-next'].hidden=true;
   ui.dialogue.hidden=false;document.body.classList.add('dialogue-open');
-  setAnimMode(1);sayOutLoud(text);
+  setAnimMode(state.selected==='warmth'||state.selected==='warmthDetail'?'FireWork':'Talk');sayOutLoud(text);
 }
 function showNode(name) {
   let node=state.scene.dialogue?.[name];
   if(!node){console.warn('Missing dialogue',name);return;}
   node=adventure?.decorateDialogue(name,node)||node;
+  if(adventure&&(name==='welcome'||name==='topics'))adventure.elderMet=true;
   adventure?.enterDialogue(node,name);
   state.selected=name;openDialogue(node);
   if(adventure)adventure.dialogueChoice=0;
@@ -282,12 +290,13 @@ function closeDialogueForChoice() {
 function choose(choice) {
   if(state.typing||state.timer<state.minSeconds)return;
   if('speechSynthesis'in window)speechSynthesis.cancel();
-  setAnimMode(2);
+  // Clip switches are selected by the next dialogue topic, not by button press.
   // Reusing the dialogue camera across linked nodes prevents unintended snaps.
   closeDialogueForChoice();
   if(choice.action==='annotation'&&typeof choice.annotationIndex==='number') {showAnnotation(choice.annotationIndex);return;}
   if(choice.next){showNode(choice.next);return;}
   adventure?.endDialogue();
+  state.keys.clear();
   status('Free exploration · find places, collect objects, or speak to the Elder');
 }
 ui['dialogue-next'].addEventListener('click',closeDialogue);
@@ -318,6 +327,7 @@ function handleInputs() {
   document.addEventListener('keydown',ev=>{
     if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(ev.code))ev.preventDefault();
     if(adventure?.handleKey(ev))return;
+    if(state.talking&&['KeyW','KeyS','KeyA','KeyD'].includes(ev.code))return;
     state.keys.add(ev.code);
     if(ev.code==='Backquote'){state.debug=!state.debug;ui.debug.hidden=!state.debug;}
     if(state.talking&&['Digit1','Digit2','Digit3'].includes(ev.code)){
