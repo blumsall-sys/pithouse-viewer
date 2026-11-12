@@ -1,5 +1,6 @@
 import * as pc from 'playcanvas';
 import { AdventureRuntime } from './adventure-runtime.js';
+import { dialogueAnimation, validateArmature, configureElderMaterials, elderSnapshot } from './elder-runtime.js';
 
 // Independent PlayCanvas runtime. Original SuperSplat viewer remains untouched.
 const $ = (id) => document.getElementById(id);
@@ -16,6 +17,8 @@ const state = { ready:false, started:false, talking:false, typing:false, selecte
 let app, camera, player, npcAnim, adventure;
 let clock = 0, lastLook = null;
 let markerButtons = [];
+let elderMeshes = [], splatEntity;
+const diagnostics = new URLSearchParams(location.search).has('diagnostics');
 const resetButton = ui['start-button'];
 
 function status(s) { state.status=s; safeText(ui.status,s); }
@@ -28,7 +31,7 @@ async function json(url) { const res=await fetch(url,{cache:'no-cache'});if(!res
 function loadAsset(url,type,name='asset') {
   return new Promise((resolve,reject)=>{
     const a = new pc.Asset(name,type,{url});
-    a.once('load',()=>resolve(a)); a.once('error',err=>reject(err instanceof Error?err:new Error(String(err))));
+    a.once('load',()=>resolve(a)); a.once('error',err=>reject(err instanceof Error?err:new Error(url+': '+String(err))));
     app.assets.add(a);app.assets.load(a);
   });
 }
@@ -75,6 +78,8 @@ async function createSplat() {
   const asset=await loadAsset(url,'gsplat','Pithouse SOG');
   const splat=new pc.Entity('Pithouse SOG');
   splat.addComponent('gsplat',{asset});
+  splatEntity=splat;
+  if(diagnostics && new URLSearchParams(location.search).get('splat')==='off')splat.enabled=false;
   if(state.scene.environment.splatPosition) splat.setPosition(...state.scene.environment.splatPosition);
   // Apply SuperSplat's Z-axis correction. Do not rotate NPCs or annotation coordinates.
   splat.setEulerAngles(...(state.scene.environment.splatRotation || [0,0,180]));
@@ -107,11 +112,13 @@ function makeAnimationGraph(entity, asset, npc) {
     const track=names.map(n=>tracks.get(n)).find(Boolean);
     if(track)resolved[state]=track;
   }
-  if(!resolved.Idle)throw new Error('Elder GLB has no Idle clip; found: '+[...tracks.keys()].join(', '));
+  for(const mode of Object.keys(aliases)){
+    if(!resolved[mode])throw new Error('Elder GLB is missing '+mode+' ('+requested[mode]+'); found: '+[...tracks.keys()].join(', '));
+  }
   entity.addComponent('anim',{activate:true});
   elderAnimationStates.clear();
   for(const [state,track] of Object.entries(resolved)){
-    entity.anim.assignAnimation(state,track);
+    entity.anim.assignAnimation(state,track,undefined,1,true);
     elderAnimationStates.add(state);
   }
   npcAnim=entity.anim;
@@ -142,12 +149,7 @@ async function createCharacters() {
     const originalRig=rig.name==='Elder_Armature_AnimMaster'
       ?rig:rig.findByName('Elder_Armature_AnimMaster');
     if(npc.id==='elder'){
-      if(!originalRig)throw new Error('Elder GLB is missing its original armature root.');
-      const bindingScale=originalRig.getLocalScale();
-      if(Math.abs(bindingScale.x-.01)>.001 || Math.abs(bindingScale.y-.01)>.001 ||
-         Math.abs(bindingScale.z-.01)>.001){
-        throw new Error('Elder GLB armature scale is damaged. Install the original Blender-exported Elder_NLA_wMesh.glb, not the normalized version from the earlier test package.');
-      }
+      validateArmature(originalRig);
     }
     const placement=new pc.Entity((npc.name||'NPC')+' placement');
     placement.setPosition(position);
@@ -156,6 +158,14 @@ async function createCharacters() {
     placement.setLocalScale(scale,scale,scale);
     placement.addChild(rig);
     app.root.addChild(placement);
+    if(npc.id==='elder'){
+      elderMeshes=rig.findComponents('render').flatMap(render=>render.meshInstances);
+      if(!elderMeshes.some(mesh=>mesh.skinInstance))throw new Error('Elder GLB contains no skinned render mesh.');
+      const materialMode=diagnostics?new URLSearchParams(location.search).get('elderMaterial'):null;
+      configureElderMaterials(pc,elderMeshes,{...npc.material, ...(materialMode?{mode:materialMode}:{})});
+      // Disable culling only for an explicit isolation experiment, never by default.
+      if(diagnostics && new URLSearchParams(location.search).get('elderCull')==='off')elderMeshes.forEach(mesh=>mesh.cull=false);
+    }
     makeAnimationGraph(rig,a,npc);
     state.nodes.set('npc:'+npc.id,placement);
     console.info('Elder placement ready; original skinned armature transform preserved', {
@@ -278,7 +288,7 @@ function typeDialogue(dt) {
   }
   safeText(ui['dialogue-hint'],available?'Choose your next step':state.typing?'The Elder is speaking…':'A moment to reflect…');
 }
-function openDialogue({speaker,text,choices=[],minDecisionSeconds=0,focus=null}) {
+function openDialogue({speaker,text,choices=[],minDecisionSeconds=0,focus=null,character=null,animation=null}) {
   if(!text)return;
   if(document.pointerLockElement)document.exitPointerLock();
   if(focus)aimAt(v3(focus),camera.getPosition());
@@ -288,7 +298,7 @@ function openDialogue({speaker,text,choices=[],minDecisionSeconds=0,focus=null})
   safeText(ui.speaker,speaker||'Guide');safeText(ui['dialogue-text'],'');
   ui['dialogue-options'].replaceChildren();ui['dialogue-next'].hidden=true;
   ui.dialogue.hidden=false;document.body.classList.add('dialogue-open');
-  setAnimMode(state.selected==='warmth'||state.selected==='warmthDetail'?'FireWork':'Talk');sayOutLoud(text);
+  setAnimMode(dialogueAnimation({character,animation}));sayOutLoud(text);
 }
 function showNode(name) {
   // Greeting is a once-per-experience event even when older links point to welcome.
@@ -296,7 +306,7 @@ function showNode(name) {
   let node=state.scene.dialogue?.[name];
   if(!node){console.warn('Missing dialogue',name);return;}
   node=adventure?.decorateDialogue(name,node)||node;
-  if(adventure&&(name==='welcome'||name==='topics'))adventure.elderMet=true;
+  if(adventure&&node.character==='elder')adventure.elderMet=true;
   adventure?.enterDialogue(node,name);
   state.selected=name;openDialogue(node);
   if(adventure)adventure.dialogueChoice=0;
@@ -426,6 +436,11 @@ async function main() {
   });
   status('Initializing voxel collision…');
   await adventure.initialize();
+  if(diagnostics)window.pithouseDebug={
+    snapshot:()=>({animation:currentElderMode,activeState:npcAnim?.baseLayer.activeState,animationTime:npcAnim?.baseLayer.activeStateCurrentTime,meshes:elderSnapshot(elderMeshes),camera:camera.getPosition().toArray()}),
+    splat:(visible)=>{splatEntity.enabled=Boolean(visible);},
+    bounds:()=>{for(const mesh of elderMeshes)app.drawWireAlignedBox(mesh.aabb.getMin(),mesh.aabb.getMax(),pc.Color.YELLOW);}
+  };
   app.on('update',dt=>{
     clock+=dt;
     adventure?.step(dt);

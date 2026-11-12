@@ -262,6 +262,7 @@ export class AdventureRuntime {
     const shot=this.poseFromShot(node,id);
     this.currentShot=shot||null;this.shotTime=0;
     if(shot)this.moveTo(shot);
+    else if(this.savedPose)this.moveTo({...this.savedPose,duration:.65},true);
   }
   endDialogue() {
     this.currentShot=null;
@@ -314,7 +315,7 @@ export class AdventureRuntime {
     }
   }
   decorateDialogue(id,node) {
-    if(id!=='welcome'||!this.inventory.length)return node;
+    if(!['welcome','topics'].includes(id)||!this.inventory.length)return node;
     const item=this.inventory[0];
     return {...node,choices:[...node.choices,
       {text:'I found a '+item.name+'. Can we discuss it?',next:'stoneDiscussion'}]};

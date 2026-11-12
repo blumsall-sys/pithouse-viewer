@@ -4,6 +4,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { inspectElder } from './elder-asset.mjs';
 import { fileURLToPath } from 'node:url';
 const dir=path.dirname(fileURLToPath(import.meta.url));
 const scenePath=path.resolve(dir,'../data/pithouse-scene.json');
@@ -26,6 +27,7 @@ if(!vec(scene.spawn?.position)||!vec(scene.spawn?.lookAt))error('spawn must have
 if(typeof scene.environment?.splat!=='string'||!scene.environment.splat.endsWith('.sog'))error('environment.splat must reference a .sog');
 if(!scene.dialogue||!scene.dialogue.welcome)error('Missing dialogue.welcome entry');
 for(const [id,node] of Object.entries(scene.dialogue||{})){
+  if(node.animation && (node.character!=='elder'||!['Talk','FireWork','Idle'].includes(node.animation)))error(id+' invalid animation owner/mode');
   if(!node.text||typeof node.text!=='string')error(id+' missing text');
   if(node.focus&&!vec(node.focus))error(id+' invalid camera focus');
   if(!Array.isArray(node.choices))error(id+' missing choices array');
@@ -74,7 +76,12 @@ for(const [label,asset] of [['splat',scene.environment?.splat],['props',scene.en
 }
 for(const c of chars){if(typeof c.model==='string'){
   const file=path.resolve(dir,'..',c.model);
-  if(!fs.existsSync(file))warn('NPC model not found (will use placeholder): '+c.model);
+  if(!fs.existsSync(file)) {
+    if(process.argv.includes('--allow-missing-elder'))warn('Required Elder asset absent; rendered character tests blocked: '+c.model);
+    else error('Required NPC model missing: '+c.model+'; run node experience/tools/install-elder.mjs with the original GLB');
+  } else if(c.id==='elder'){
+    try{console.log('Elder asset:',JSON.stringify(inspectElder(file)));}catch(e){error(e.message);}
+  }
 }}
 console.log('Pithouse scene:',chars.length,'NPCs,',hots.length,'hotspots,',items.length,'items,',walls.length,'colliders,',Object.keys(scene.dialogue||{}).length,'dialogue nodes');
 console.log('Validation complete:',errors,'errors,',warnings,'warnings.');

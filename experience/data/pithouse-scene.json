@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "name": "Pithouse · Elder Introduction",
-  "notes": "Pithouse placement calibrated from original SuperSplat settings: SOG rotates +180° on Z, while camera, NPC and annotation positions remain in original viewer world coordinates. Historical dialogue is illustrative pending cultural review.",
+  "name": "Pithouse \u00b7 Elder Introduction",
+  "notes": "Pithouse placement calibrated from original SuperSplat settings: SOG rotates +180\u00b0 on Z, while camera, NPC and annotation positions remain in original viewer world coordinates. Historical dialogue is illustrative pending cultural review.",
   "environment": {
     "splat": "../pithouse.sog",
     "legacyAnnotations": "../settings.json",
@@ -104,7 +104,11 @@
       },
       "placementNote": "Starter approximation: near original hearth annotation and beside the base of the center pole. Adjust with Blender NPC_Elder placement once mesh is overlaid.",
       "autoStartDialogue": false,
-      "notes": "Blender 5.x combined skinned GLB: one mesh, one 33-joint armature, three embedded NLA clips. 1.7x scale compensates for roughly 1-metre GLB mesh height; verify against SOG."
+      "notes": "Blender 5.x combined skinned GLB: one mesh, one 33-joint armature, three embedded NLA clips. 1.7x scale compensates for roughly 1-metre GLB mesh height; verify against SOG.",
+      "material": {
+        "mode": "mask",
+        "alphaCutoff": 0.1
+      }
     }
   ],
   "hotspots": [],
@@ -141,7 +145,9 @@
           "mode": "explore"
         }
       ],
-      "camera": "elder"
+      "camera": "elder",
+      "character": "elder",
+      "animation": "Talk"
     },
     "building": {
       "speaker": "Elder",
@@ -161,7 +167,9 @@
           "mode": "explore"
         }
       ],
-      "camera": "centerPole"
+      "camera": "centerPole",
+      "character": "elder",
+      "animation": "Talk"
     },
     "pole": {
       "speaker": "Elder",
@@ -177,7 +185,9 @@
           "mode": "explore"
         }
       ],
-      "camera": "centerPole"
+      "camera": "centerPole",
+      "character": "elder",
+      "animation": "Talk"
     },
     "warmth": {
       "speaker": "Elder",
@@ -197,7 +207,9 @@
           "mode": "explore"
         }
       ],
-      "camera": "hearth"
+      "camera": "hearth",
+      "character": "elder",
+      "animation": "Talk"
     },
     "warmthDetail": {
       "speaker": "Elder",
@@ -213,7 +225,9 @@
           "text": "Explore the pithouse.",
           "mode": "explore"
         }
-      ]
+      ],
+      "character": "elder",
+      "animation": "FireWork"
     },
     "stoneDiscussion": {
       "speaker": "Elder",
@@ -229,7 +243,9 @@
           "text": "Return to exploring.",
           "mode": "explore"
         }
-      ]
+      ],
+      "character": "elder",
+      "animation": "Talk"
     },
     "topics": {
       "speaker": "Elder",
@@ -249,7 +265,9 @@
           "text": "I want to explore on my own.",
           "mode": "explore"
         }
-      ]
+      ],
+      "character": "elder",
+      "animation": "Talk"
     }
   },
   "startup": {
