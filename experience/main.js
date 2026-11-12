@@ -135,15 +135,33 @@ async function createCharacters() {
     status('Loading character: '+(npc.name||npc.id)+'…');
     const a=await loadAsset(npc.model,'container',npc.name||'NPC');
     if(!a.resource?.instantiateRenderEntity)throw new Error('Invalid GLB container: '+npc.model);
-    const entity=a.resource.instantiateRenderEntity();
-    entity.name=npc.name||'NPC';
-    entity.setPosition(position);
-    entity.setEulerAngles(0,npc.yaw||0,0);
+    // NEVER change transforms on the imported GLB root: its 0.01 armature
+    // scale / X-axis rotation are required by the inverse bind matrices.
+    // Transform a separate placement parent instead; keep the rig hierarchy intact.
+    const rig=a.resource.instantiateRenderEntity();
+    const originalRig=rig.name==='Elder_Armature_AnimMaster'
+      ?rig:rig.findByName('Elder_Armature_AnimMaster');
+    if(npc.id==='elder'){
+      if(!originalRig)throw new Error('Elder GLB is missing its original armature root.');
+      const bindingScale=originalRig.getLocalScale();
+      if(Math.abs(bindingScale.x-.01)>.001 || Math.abs(bindingScale.y-.01)>.001 ||
+         Math.abs(bindingScale.z-.01)>.001){
+        throw new Error('Elder GLB armature scale is damaged. Install the original Blender-exported Elder_NLA_wMesh.glb, not the normalized version from the earlier test package.');
+      }
+    }
+    const placement=new pc.Entity((npc.name||'NPC')+' placement');
+    placement.setPosition(position);
+    placement.setEulerAngles(0,npc.yaw||0,0);
     const scale=Number(npc.scale)||1;
-    entity.setLocalScale(scale,scale,scale);
-    app.root.addChild(entity);
-    makeAnimationGraph(entity,a,npc);
-    state.nodes.set('npc:'+npc.id,entity);
+    placement.setLocalScale(scale,scale,scale);
+    placement.addChild(rig);
+    app.root.addChild(placement);
+    makeAnimationGraph(rig,a,npc);
+    state.nodes.set('npc:'+npc.id,placement);
+    console.info('Elder placement ready; original skinned armature transform preserved', {
+      placementScale:scale,rigScale:originalRig?.getLocalScale().toString(),
+      animations:[...elderAnimationStates]
+    });
   }
 }
 function importAnnotations() {
