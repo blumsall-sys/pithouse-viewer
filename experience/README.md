@@ -123,3 +123,18 @@ Animation source handling: keep source FBXs offline unless their license allows 
 5. Confirm Elder GLB visibly animates Idle, Talk, FireWork when installed locally. Inspect browser console for missing clip fallback.
 
 Code/config and the source FBX skeletons have been checked, but the rendered character, voxel movement changes and Blender GLB conversion have not been end-to-end verified in a live Blender/browser session.
+
+
+## November 12 Elder NLA test build — required local model installation
+
+The prototype branch references `experience/assets/elder.glb`, which is not committed to the public repository. Use the separately supplied **Pithouse_Elder_Local_Test.zip** to clone/update the feature branch and install the provided normalized GLB. Do not treat the GitHub branch alone as a complete character-enabled deployment.
+
+- Source Elder GLB contains one textured mesh, one 33-joint armature and three clips: `mixamo.com_Idle`, `NlaTrack_Talking`, `NlaTrack_Working`.
+- Original exported root transform was a 0.01 scale and +90 degree X-axis rotation, producing an incorrectly oriented approximately 1 cm scene-space model. The supplied normalized `elder.glb` uses identity root rotation and root scale 1, retaining the embedded mesh, skeleton, image, and animations.
+- Manifest scales normalized ~1 m mesh by 1.7, with the Elder at [0.95,0,2.2] and a solid 0.86 x 1.75 x 0.86 m author collider.
+- Elder GLB is **required**. An absent or invalid GLB displays a startup error instead of silently substituting a placeholder. The animation component maps embedded clip names to Idle, Talk, FireWork and transitions back to Idle after conversation.
+- Validate all files using `node experience/tools/validate-scene.mjs` after copying `elder.glb`.
+- Run local server from repository root (not inside experience/): `python -m http.server 8000`. Open `http://localhost:8000/experience/`.
+- Full in-browser render, animation transition, contact, voxel floor and gamepad testing require a desktop browser and must be performed locally. Static file/GLB validation is not an end-to-end browser test.
+- This branch is independent. `main` and `backup/2026-11-11-original-viewer` remain unchanged.
+
