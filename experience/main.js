@@ -29,16 +29,6 @@ function placeSplat(entity, transform) {
   entity.setLocalScale(...transform.scale);
 }
 
-async function createExteriorDetails() {
-  const {roof} = state.scene.environment;
-  const asset = await loadAsset(roof.url, 'gsplat', 'Pithouse roof');
-  const house = new pc.Entity('Pithouse roof');
-  house.addComponent('gsplat', {asset});
-  placeSplat(house, roof);
-  app.root.addChild(house);
-
-}
-
 async function createPanorama() {
   const panorama = state.scene.environment.panorama;
   const sky = new pc.Entity('Fraser River panorama');
@@ -223,6 +213,7 @@ function importAnnotations() {
   const portal=state.scene.portal;
   state.positions.push({...portal, type:'portal', position:v3(portal.position)});
   state.annotations.forEach((a,i)=>{
+    if (/center pole/i.test(a.title)) return;
     state.positions.push({type:'annotation',id:'annotation-'+i,name:a.title||('Annotation '+(i+1)),position:v3(a.position),radius:3,index:i});
   });
   for(const h of(state.scene.hotspots||[])){
@@ -295,7 +286,13 @@ function nearestInteraction() {
 function interactWith(item) {
   if(!canInteract(item))return;
   switch(item.type) {
-    case 'portal': crossLadder();break;
+    case 'portal':
+      if (exterior) crossLadder();
+      else adventure.openModal('Investigate the center pole','',[
+        {label:'Learn about the center pole',action:()=>{adventure.closeModal();showAnnotation(state.annotations.findIndex(a=>/center pole/i.test(a.title)));}},
+        {label:'Climb to Fraser River',action:crossLadder}
+      ]);
+      break;
     case 'npc': showNode(adventure?.elderMet?'topics':(item.dialogue||'welcome'));break;
     case 'annotation':showAnnotation(item.index);break;
     case 'hotspot':item.dialogue?showNode(item.dialogue):showMessage(item.name,'This object is ready for an authored interaction.');break;
@@ -389,28 +386,14 @@ function choose(choice) {
 }
 ui['dialogue-next'].addEventListener('click',closeDialogue);
 function updateMarkers() {
-  if(!state.started||state.talking){for(const b of markerButtons)b.button.hidden=true;return;}
-  const eye=camera.getPosition(),forward=camera.forward;
-  for(const {item,button} of markerButtons){
-    const p=item.position;
-    if(item.type==='collectible'&&state.collected.has(item.id)){button.hidden=true;continue;}
-    const d=p.clone().sub(eye),length=d.length();
-    if(d.dot(forward)<=0||length>Math.max(6,item.radius*2.2)){button.hidden=true;continue;}
-    const screen=camera.camera.worldToScreen(p);
-    const inside=screen.x>40&&screen.x<innerWidth-40&&screen.y>80&&screen.y<innerHeight-50;
-    button.hidden=!inside;
-    button.disabled=!canInteract(item);
-    if(inside){button.style.left=screen.x+'px';button.style.top=screen.y+'px';}
+  const target=!document.querySelector('.experience-menu').open && state.started && !state.talking && adventure?.pause.hidden && ui.help.hidden ? nearestInteraction() : null;
+  for(const {item,button} of markerButtons) {
+    button.hidden=item!==target;
+    if(button.hidden) continue;
+    const screen=camera.camera.worldToScreen(item.position);
+    button.style.left=clamp(screen.x,120,innerWidth-120)+'px';
+    button.style.top=clamp(screen.y,105,innerHeight-80)+'px';
   }
-  const ladder = markerButtons.find(entry => entry.item.type === 'portal');
-  const near=nearestInteraction();
-  if (near?.type === 'portal' && ladder.button.hidden) {
-    ladder.button.hidden=false;
-    ladder.button.disabled=false;
-    ladder.button.style.left='50%';
-    ladder.button.style.top='30%';
-  }
-  safeText(ui.prompt,near?'Press E / tap Interact · '+near.name:'');
 }
 function onLook(dx,dy) {
   if(adventure){adventure.look(dx,dy);return;}
@@ -501,7 +484,7 @@ async function main() {
   handleInputs();
   await createSplat();
   await createPanorama();
-  if (exterior) await createExteriorDetails();
+
 
   await createProps();
   await createCharacters();

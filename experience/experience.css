@@ -53,3 +53,8 @@ body.dialogue-open #crosshair,body.started #welcome {display:none}
   .dialogue {max-height:46dvh;}
   .modal-actions button {min-height:38px;}
 }
+
+body.started #status, body.started #collection, body.started #prompt { display:none; }
+
+.experience-menu {position:relative;align-self:flex-start}.experience-menu summary {cursor:pointer;list-style:none}.experience-menu .top-actions {position:absolute;right:0;top:100%;padding:8px;width:170px;background:#201910;display:grid;z-index:4}.experience-menu:not([open]) .top-actions {display:none}
+body.started .brand small {display:none}

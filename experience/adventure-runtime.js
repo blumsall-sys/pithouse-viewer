@@ -115,6 +115,7 @@ class WalkCollision {
         const tx=pos.x+(axis==='x'?delta:0),tz=pos.z+(axis==='z'?delta:0);
         const floor=this.grounded?this.floorAt(tx,tz,this.feetY,.42,.7):null;
         if(this.voxel && this.grounded && (floor===null || this.feetY-floor>.5))continue;
+        if(Number.isFinite(floor) && floor > (this.scene.movement?.maxFeetY ?? Infinity))continue;
         if(this.grounded&&floor!==null&&floor-this.feetY>.32)continue;
         if(!this.free(tx,tz,Number.isFinite(floor)?Math.max(this.feetY,floor+.055):this.feetY))continue;
         pos.x=tx;pos.z=tz;
@@ -146,6 +147,7 @@ class WalkCollision {
       const floor=Number(this.scene.movement?.fallbackFloorY??0);
       if(this.feetY<floor){this.feetY=floor;this.vy=0;this.grounded=true;}
     }
+    this.feetY=Math.min(this.feetY,this.scene.movement?.maxFeetY ?? Infinity);
     if(this.voxel) {
       if(this.grounded && Number.isFinite(detected)) {
         this.lastGroundedPosition.set(pos.x, this.feetY+this.eyeHeight, pos.z);
@@ -224,7 +226,7 @@ export class AdventureRuntime {
       this.walker=new WalkCollision(this.pc,voxel,this.scene);
       this.status('Voxel collision loaded · ground walking enabled');
     } catch(err) {
-      if (this.scene.environment.roof) throw new Error('Fraser River terrain collision failed to load: '+err.message);
+      if (this.scene.environment.placement) throw new Error('Fraser River terrain collision failed to load: '+err.message);
       console.error('Voxel collision failed',err);
       this.walker=new WalkCollision(this.pc,null,this.scene);
       this.status('WARNING: voxel collision unavailable, using author colliders and floor');
@@ -234,7 +236,7 @@ export class AdventureRuntime {
     this.ambience.start();
     this.pause.hidden=true;this.backAction=null;this.savedPose=null;this.transition=null;this.currentShot=null;
     this.state.talking=false;this.walker?.reset(this.camera,V(this.pc,this.scene.spawn.position));
-    this.status(this.scene.environment.roof ? 'Fraser River · Return to the roof ladder to go inside' : 'Walk to the Elder or climb the roof ladder · E to interact');
+    this.status(this.scene.environment.placement ? 'Fraser River · Return to the roof ladder to go inside' : 'Walk to the Elder or climb the roof ladder · E to interact');
   }
   step(dt) {
     this.pollGamepad(dt);
@@ -380,22 +382,11 @@ export class AdventureRuntime {
   back() {if(!this.pause.hidden){this.closeModal();return;}if(this.state.talking){this.cancelDialogue();return;}this.openPause();}
   cancelDialogue(){if(!this.state.talking)return;this.closeDialogue();this.status('Conversation closed · continue exploring');}
   reset(){
-    this.closeModal();if('speechSynthesis'in window)speechSynthesis.cancel();
-    if(this.state.talking)this.closeDialogue();
-    this.state.collected.clear();this.inventory=[];
-    for(const [key,ent] of this.state.nodes){if(key.startsWith('item:'))ent.enabled=true;}
-    this.currentShot=null;this.savedPose=null;this.transition=null;this.elderMet=false;
-    this.state.keys.clear();this.state.touchMove=[0,0];this.gamepadAxes=[0,0];
-    byId('collection').textContent='';
-    this.camera.setPosition(...this.scene.spawn.position);
-    this.walker?.reset(this.camera,V(this.pc,this.scene.spawn.position));
-    const dir=V(this.pc,this.scene.spawn.lookAt).sub(this.camera.getPosition());
-    this.state.yaw=Math.atan2(-dir.x,-dir.z)*180/Math.PI;
-    this.state.pitch=clamp(Math.atan2(dir.y,Math.hypot(dir.x,dir.z))*180/Math.PI,-77,77);
-    this.camera.setEulerAngles(this.state.pitch,this.state.yaw,0);
-    this.state.started=false;document.body.classList.remove('started');
-    byId('welcome').hidden=false;byId('touch').hidden=true;
-    this.status('Experience reset · begin the journey');
+    const start=new URL(location.href);
+    start.searchParams.delete('scene');
+    sessionStorage.removeItem('pithouse-ladder-trip');
+    location.replace(start.href);
+
   }
   skipTyping() {
     if(!this.state.typing)return false;

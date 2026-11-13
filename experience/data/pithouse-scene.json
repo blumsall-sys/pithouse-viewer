@@ -53,7 +53,8 @@
     "fallbackFloorY": 0.03,
     "groundSmoothing": 6,
     "jumpVelocity": 4.1,
-    "headBob": 0
+    "headBob": 0,
+    "maxFeetY": 1.45
   },
   "lighting": [
     {
@@ -353,13 +354,13 @@
     }
   },
   "portal": {
-    "name": "Climb the ladder to Fraser River",
+    "name": "Investigate the center pole",
     "position": [
       0.45,
       1.65,
       3.55
     ],
-    "radius": 3.4
+    "radius": 1.85
   },
   "arrival": {
     "position": [

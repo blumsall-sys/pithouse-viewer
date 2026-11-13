@@ -20,28 +20,10 @@
         3.405549812316895
       ]
     },
-    "roof": {
-      "url": "./assets/fraser/roof.sog",
-      "position": [
-        0.14240655303001404,
-        11.425936698913574,
-        3.454376220703125
-      ],
-      "quaternion": [
-        -0.9957530498504639,
-        0.018532708287239075,
-        0.019022537395358086,
-        0.08815115690231323
-      ],
-      "scale": [
-        0.9999999403953552,
-        0.9999999403953552,
-        0.9999999403953552
-      ]
-    },
     "panorama": "./assets/fraser/panorama.jpg",
     "voxelJson": "./assets/fraser/terrain.voxel.json",
-    "voxelBin": "./assets/fraser/terrain.voxel.bin"
+    "voxelBin": "./assets/fraser/terrain.voxel.bin",
+    "propsGlb": "./assets/fraser/entrance.glb"
   },
   "spawn": {
     "position": [
