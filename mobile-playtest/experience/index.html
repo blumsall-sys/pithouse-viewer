@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#15110d">
+  <title>Pithouse | Interactive Journey</title>
+  <link rel="stylesheet" href="./experience.css">
+  <script>
+    // The local launcher uses the pinned npm install, including when offline.
+    const engine = new URLSearchParams(location.search).has('localEngine')
+      ? './node_modules/playcanvas/build/playcanvas.min.mjs'
+      : 'https://cdn.jsdelivr.net/npm/playcanvas@2.24.0/+esm';
+    const imports = document.createElement('script');
+    imports.type = 'importmap';
+    imports.textContent = JSON.stringify({imports: {playcanvas: engine}});
+    document.head.append(imports);
+  </script>
+</head>
+<body>
+  <canvas id="application" aria-label="Interactive three dimensional pithouse"></canvas>
+  <div id="markers" aria-label="Points of interest"></div>
+  <header id="topbar">
+    <div class="brand"><span class="brand-mark">◆</span><div><strong>THE PITHOUSE</strong><small>AN INTERACTIVE JOURNEY · PROTOTYPE</small></div></div>
+    <details class="experience-menu"><summary class="quiet">Menu</summary><div class="top-actions">
+      <button id="voice-button" class="quiet" type="button" aria-pressed="false">Voice: Off</button>
+      <button id="help-button" class="quiet" type="button">Controls</button>
+      <a class="quiet old-viewer" href="../index.html" title="Return to the original SuperSplat viewer">Original viewer</a>
+    </div></details>
+  </header>
+  <div id="crosshair" aria-hidden="true">+</div>
+  <div id="status" role="status">Preparing experience…</div>
+  <div id="prompt" aria-live="polite"></div>
+  <div id="collection" aria-live="polite"></div>
+  <div id="debug" hidden></div>
+  <section id="welcome" class="shade" aria-labelledby="welcome-title">
+    <div class="welcome-card">
+      <div class="eyebrow">HISTORY · EXPLORATION · DISCOVERY</div>
+      <h1 id="welcome-title">Step inside the Pithouse.</h1>
+      <p>Meet an Elder, investigate places and objects, and choose what you want to learn. This is an editable technical prototype; historical dialogue requires community review before publication.</p>
+      <button id="start-button" class="primary" type="button" disabled>Loading scene…</button>
+      <p class="hint">Desktop: WASD walk · Space jump · E interact · I inventory · Esc pause. Controller: X jump · A interact · B back · Start pause. Mobile: touchpads + Interact.</p>
+    </div>
+  </section>
+  <section id="dialogue" class="dialogue" hidden aria-labelledby="speaker">
+    <div class="dialogue-header"><span class="diamond">✦</span><strong id="speaker">Elder</strong><span class="dialogue-cue">DIALOGUE</span></div>
+    <p id="dialogue-text" class="dialogue-text" aria-live="off"></p>
+    <div id="dialogue-options" class="choices" role="group" aria-label="Choose a response"></div>
+    <div class="dialogue-footer"><span id="dialogue-hint">Listen to the Elder…</span><button id="dialogue-next" class="secondary" type="button" hidden>Continue ›</button></div>
+  </section>
+  <section id="help" class="help-panel" hidden aria-labelledby="help-title">
+    <div class="dialogue-header"><strong id="help-title">Controls</strong><button id="close-help" class="quiet" type="button">Close ✕</button></div>
+    <p><b>Desktop:</b> WASD / arrows walk, Space jump, mouse look, E interact, I inventory, Esc / P pause or back, 1–3 choose dialogue, Enter reveal text, ~ debug.</p><p><b>USB gamepad:</b> left stick walk, right stick look, X jump, A interact/confirm (jump when no target), B back, Y inventory, Start pause, D-pad dialogue/menu navigation.</p>
+    <p><b>Mobile:</b> drag left pad to move and right pad to look. Tap Interact or the floating markers. Screen buttons are sized for landscape.</p>
+    <p>The Elder requires the original skinned GLB with all three animation clips installed locally.</p>
+  </section>
+  <div id="touch" class="touch-ui" hidden>
+    <div class="touchpad" id="move-pad"><span class="touch-label">MOVE</span><div class="thumb" id="move-thumb"></div></div>
+    <div class="touchpad" id="look-pad"><span class="touch-label">LOOK</span><div class="thumb" id="look-thumb"></div></div>
+    <button id="mobile-interact" class="primary" type="button">Interact</button>
+  </div>
+  <div id="fatal" role="alert" hidden></div>
+  <script>
+    // A partial zip/local update can leave main.js referring to a missing module.
+    // Make that failure visible instead of showing a permanent "Loading scene".
+    (async () => {
+      try {
+        for (const file of ['./main.js', './adventure-runtime.js', './elder-runtime.js', './data/pithouse-scene.json']) {
+          const result = await fetch(file, { method: 'HEAD', cache: 'no-store' });
+          if (!result.ok) throw new Error(file + ' returned HTTP ' + result.status);
+        }
+      } catch (error) {
+        const box = document.getElementById('fatal');
+        if (box) {
+          box.hidden = false;
+          box.textContent = 'Pithouse installation incomplete: ' + error.message +
+            '. Download the full feature-branch experience folder, including adventure-runtime.js.';
+        }
+        const start = document.getElementById('start-button');
+        if (start) { start.disabled = true; start.textContent = 'Missing experience files'; }
+      }
+    })();
+  </script>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
