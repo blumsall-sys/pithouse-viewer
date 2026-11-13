@@ -9,7 +9,47 @@ const MOBILE = matchMedia('(pointer: coarse)').matches;
 const clamp = (n,lo,hi) => Math.max(lo,Math.min(hi,n));
 const v3 = (p) => new pc.Vec3(...p);
 const safeText = (el, value) => { el.textContent = String(value ?? ''); };
-const sceneURL = './data/pithouse-scene.json';
+const exterior = new URLSearchParams(location.search).get('scene') === 'fraser';
+const sceneURL = exterior ? './data/fraser-river.json' : './data/pithouse-scene.json';
+const travelKey = 'pithouse-ladder-trip';
+
+function crossLadder() {
+  const url = new URL(location.href);
+  if (exterior) url.searchParams.delete('scene');
+  else url.searchParams.set('scene', 'fraser');
+  sessionStorage.setItem(travelKey, JSON.stringify({
+    outside: !exterior, inventory: adventure.inventory, elderMet: adventure.elderMet, voice: state.voice
+  }));
+  location.replace(url);
+}
+
+function placeSplat(entity, transform) {
+  entity.setPosition(...transform.position);
+  entity.setRotation(...transform.quaternion);
+  entity.setLocalScale(...transform.scale);
+}
+
+async function createExteriorDetails() {
+  const {roof, panorama} = state.scene.environment;
+  const asset = await loadAsset(roof.url, 'gsplat', 'Pithouse roof');
+  const house = new pc.Entity('Pithouse roof');
+  house.addComponent('gsplat', {asset});
+  placeSplat(house, roof);
+  app.root.addChild(house);
+
+  const sky = new pc.Entity('Fraser River panorama');
+  const material = new pc.StandardMaterial();
+  material.useLighting = false;
+  material.cull = pc.CULLFACE_FRONT;
+  material.emissive = pc.Color.WHITE;
+  material.emissiveMap = (await loadAsset(panorama, 'texture', 'River panorama')).resource;
+  material.depthWrite = false;
+  material.update();
+  sky.addComponent('render', {type:'sphere', material});
+  sky.setLocalScale(1600,1600,1600);
+  sky.setEulerAngles(0,116,0);
+  app.root.addChild(sky);
+}
 const state = { ready:false, started:false, talking:false, typing:false, selected:null, since:0, timer:0, typeElapsed:0,
   typeText:'', shown:0, minSeconds:0, choicePending:null, voice:false, yaw:0, pitch:0, keys:new Set(),
   touchMove:[0,0], touchLook:[0,0], collected:new Set(), scene:null, annotations:[], positions:[], nodes:new Map(),
@@ -84,6 +124,7 @@ async function createSplat() {
   // Apply SuperSplat's Z-axis correction. Do not rotate NPCs or annotation coordinates.
   splat.setEulerAngles(...(state.scene.environment.splatRotation || [0,0,180]));
   if(state.scene.environment.splatScale) splat.setLocalScale(...state.scene.environment.splatScale);
+  if (exterior) placeSplat(splat, state.scene.environment.placement);
   app.root.addChild(splat);
 }
 async function createProps() {
@@ -175,6 +216,8 @@ async function createCharacters() {
   }
 }
 function importAnnotations() {
+  const portal=state.scene.portal;
+  state.positions.push({...portal, type:'portal', position:v3(portal.position)});
   state.annotations.forEach((a,i)=>{
     state.positions.push({type:'annotation',id:'annotation-'+i,name:a.title||('Annotation '+(i+1)),position:v3(a.position),radius:3,index:i});
   });
@@ -244,6 +287,7 @@ function nearestInteraction() {
 function interactWith(item) {
   if(!canInteract(item))return;
   switch(item.type) {
+    case 'portal': crossLadder();break;
     case 'npc': showNode(adventure?.elderMet?'topics':(item.dialogue||'welcome'));break;
     case 'annotation':showAnnotation(item.index);break;
     case 'hotspot':item.dialogue?showNode(item.dialogue):showMessage(item.name,'This object is ready for an authored interaction.');break;
@@ -418,7 +462,15 @@ function handleInputs() {
 }
 async function main() {
   state.scene=await json(sceneURL);
-  const settings=await json(state.scene.environment?.legacyAnnotations||'../settings.json').catch(e=>{console.warn('Legacy annotations unavailable',e);return null;});
+  const pending = JSON.parse(sessionStorage.getItem(travelKey) || "null");
+  const arriving = pending?.outside === exterior;
+  if (arriving && !exterior) state.scene.spawn = state.scene.arrival;
+  if (exterior) {
+    document.title = "Fraser River | Pithouse";
+    $("welcome-title").textContent = "Walk the Fraser River landscape";
+    $("welcome-title").nextElementSibling.textContent = "Explore the roof and hillside. Return to the roof ladder to go inside.";
+  }
+  const settings=exterior ? null : await json(state.scene.environment?.legacyAnnotations||'../settings.json').catch(e=>{console.warn('Legacy annotations unavailable',e);return null;});
   state.annotations=settings?.annotations||[];
   app=new pc.Application(ui.application,{graphicsDeviceOptions:{antialias:false,alpha:false}});
   app.setCanvasFillMode(pc.FILLMODE_FILL_WINDOW);app.setCanvasResolution(pc.RESOLUTION_AUTO);
@@ -427,6 +479,7 @@ async function main() {
   createPlayer();
   handleInputs();
   await createSplat();
+  if (exterior) await createExteriorDetails();
   await createProps();
   await createCharacters();
   importAnnotations();
@@ -453,5 +506,17 @@ async function main() {
   });
   state.ready=true;status(adventure.walker?.voxel?'Ready · SOG + voxel walk collision':'Ready · SOG loaded, voxel collision unavailable');
   resetButton.disabled=false;safeText(resetButton,'Begin the journey');
+  if (arriving) {
+    adventure.inventory = pending.inventory;
+    adventure.elderMet = pending.elderMet;
+    state.collected = new Set(pending.inventory.map(item => item.id));
+    for (const id of state.collected) {
+      const entity = state.nodes.get('item:'+id);
+      if (entity) entity.enabled=false;
+    }
+    if (pending.voice) ui['voice-button'].click();
+    resetButton.click();
+    sessionStorage.removeItem(travelKey);
+  }
 }
 main().catch(fail);

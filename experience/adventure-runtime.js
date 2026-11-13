@@ -85,6 +85,7 @@ class WalkCollision {
     const floor=this.floorAt(eye.x,eye.z,foot,1.2,4);
     this.feetY=Number.isFinite(floor)?floor+.055:foot;
     this._lastFloor=Number.isFinite(floor)?floor:null;
+    this.lastGroundedPosition=eye.clone();
     this.grounded=Number.isFinite(floor);this.groundLost=0;
     this.vy=0;this.velocity=[0,0];this.travel=0;
     camera.setPosition(eye.x,this.feetY+this.eyeHeight,eye.z);
@@ -113,6 +114,7 @@ class WalkCollision {
         if(Math.abs(delta)<.000001)continue;
         const tx=pos.x+(axis==='x'?delta:0),tz=pos.z+(axis==='z'?delta:0);
         const floor=this.grounded?this.floorAt(tx,tz,this.feetY,.42,.7):null;
+        if(this.scene.environment?.roof && this.grounded && (floor===null || this.feetY-floor>.5))continue;
         if(this.grounded&&floor!==null&&floor-this.feetY>.32)continue;
         if(!this.free(tx,tz,this.feetY))continue;
         pos.x=tx;pos.z=tz;
@@ -143,6 +145,14 @@ class WalkCollision {
     if(!this.voxel) {
       const floor=Number(this.scene.movement?.fallbackFloorY??0);
       if(this.feetY<floor){this.feetY=floor;this.vy=0;this.grounded=true;}
+    }
+    if(this.scene.environment?.roof) {
+      if(this.grounded && Number.isFinite(detected)) {
+        this.lastGroundedPosition.set(pos.x, this.feetY+this.eyeHeight, pos.z);
+      } else if(this.feetY < this.lastGroundedPosition.y-this.eyeHeight-2) {
+        this.reset(camera,this.lastGroundedPosition);
+        return;
+      }
     }
     this.travel+=Math.hypot(pos.x-camera.getPosition().x,pos.z-camera.getPosition().z);
     // No procedural vertical head-bob: physically grounded camera stays stable.
@@ -214,6 +224,7 @@ export class AdventureRuntime {
       this.walker=new WalkCollision(this.pc,voxel,this.scene);
       this.status('Voxel collision loaded · ground walking enabled');
     } catch(err) {
+      if (this.scene.environment.roof) throw new Error('Fraser River terrain collision failed to load: '+err.message);
       console.error('Voxel collision failed',err);
       this.walker=new WalkCollision(this.pc,null,this.scene);
       this.status('WARNING: voxel collision unavailable, using author colliders and floor');
@@ -223,7 +234,7 @@ export class AdventureRuntime {
     this.ambience.start();
     this.pause.hidden=true;this.backAction=null;this.savedPose=null;this.transition=null;this.currentShot=null;
     this.state.talking=false;this.walker?.reset(this.camera,V(this.pc,this.scene.spawn.position));
-    this.status('Walk to the Elder and press E or gamepad A · I inventory · Esc pause');
+    this.status(this.scene.environment.roof ? 'Fraser River · Return to the roof ladder to go inside' : 'Walk to the Elder or climb the roof ladder · E to interact');
   }
   step(dt) {
     this.pollGamepad(dt);

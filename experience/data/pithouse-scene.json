@@ -350,5 +350,27 @@
       "duration": 0.65,
       "note": "Keep the crouching head and hands above the dialogue panel."
     }
+  },
+  "portal": {
+    "name": "Climb the ladder to Fraser River",
+    "position": [
+      0.45,
+      1.65,
+      3.55
+    ],
+    "radius": 1.9
+  },
+  "arrival": {
+    "position": [
+      -0.35,
+      1.7,
+      3.25
+    ],
+    "lookAt": [
+      0.8,
+      1.35,
+      2.4
+    ],
+    "fov": 78
   }
 }

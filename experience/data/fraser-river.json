@@ -1,0 +1,73 @@
+{
+  "name": "Fraser River",
+  "environment": {
+    "splat": "./assets/fraser/landscape.sog",
+    "placement": {
+      "position": [
+        0.10092376172542572,
+        16.6473331451416,
+        -4.120969772338867
+      ],
+      "quaternion": [
+        0.9760298132896423,
+        -0.00014702735643368214,
+        0.2155425101518631,
+        0.03011923097074032
+      ],
+      "scale": [
+        5.239307403564453,
+        5.239307403564453,
+        5.239307403564453
+      ]
+    },
+    "roof": {
+      "url": "./assets/fraser/roof.sog",
+      "position": [
+        0.14240655303001404,
+        11.425936698913574,
+        3.454376220703125
+      ],
+      "quaternion": [
+        -0.9957530498504639,
+        0.018532708287239075,
+        0.019022537395358086,
+        0.08815115690231323
+      ],
+      "scale": [
+        0.9999999403953552,
+        0.9999999403953552,
+        0.9999999403953552
+      ]
+    },
+    "panorama": "./assets/fraser/panorama.jpg",
+    "voxelJson": "./assets/fraser/terrain.voxel.json",
+    "voxelBin": "./assets/fraser/terrain.voxel.bin"
+  },
+  "spawn": {
+    "position": [
+      2,
+      18.5,
+      0
+    ],
+    "lookAt": [
+      2,
+      16,
+      22
+    ],
+    "fov": 78
+  },
+  "movement": {
+    "speed": 2.6,
+    "radius": 0.22,
+    "eyeHeight": 1.6
+  },
+  "portal": {
+    "name": "Descend the ladder into the pithouse",
+    "position": [
+      0.6,
+      17.3,
+      0.7
+    ],
+    "radius": 3.1
+  }
+}
