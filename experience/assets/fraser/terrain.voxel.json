@@ -1,1 +1,1 @@
-{"version": "1.1", "gridBounds": {"min": [-32, -12, -32], "max": [32, 45.6, 32]}, "voxelResolution": 0.1, "treeDepth": 8, "leafSize": 4, "nodeCount": 69226, "leafDataCount": 101632}
+{"version": "1.1", "gridBounds": {"min": [-32, -12, -32], "max": [32, 45.6, 32]}, "voxelResolution": 0.1, "treeDepth": 8, "leafSize": 4, "nodeCount": 70876, "leafDataCount": 106206}

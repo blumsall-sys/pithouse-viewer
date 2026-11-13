@@ -114,9 +114,9 @@ class WalkCollision {
         if(Math.abs(delta)<.000001)continue;
         const tx=pos.x+(axis==='x'?delta:0),tz=pos.z+(axis==='z'?delta:0);
         const floor=this.grounded?this.floorAt(tx,tz,this.feetY,.42,.7):null;
-        if(this.scene.environment?.roof && this.grounded && (floor===null || this.feetY-floor>.5))continue;
+        if(this.voxel && this.grounded && (floor===null || this.feetY-floor>.5))continue;
         if(this.grounded&&floor!==null&&floor-this.feetY>.32)continue;
-        if(!this.free(tx,tz,this.feetY))continue;
+        if(!this.free(tx,tz,Number.isFinite(floor)?Math.max(this.feetY,floor+.055):this.feetY))continue;
         pos.x=tx;pos.z=tz;
       }
     }
@@ -146,7 +146,7 @@ class WalkCollision {
       const floor=Number(this.scene.movement?.fallbackFloorY??0);
       if(this.feetY<floor){this.feetY=floor;this.vy=0;this.grounded=true;}
     }
-    if(this.scene.environment?.roof) {
+    if(this.voxel) {
       if(this.grounded && Number.isFinite(detected)) {
         this.lastGroundedPosition.set(pos.x, this.feetY+this.eyeHeight, pos.z);
       } else if(this.feetY < this.lastGroundedPosition.y-this.eyeHeight-2) {
@@ -244,7 +244,9 @@ export class AdventureRuntime {
     const k=this.state.keys;
     const x=(k.has('KeyD')||k.has('ArrowRight')?1:0)-(k.has('KeyA')||k.has('ArrowLeft')?1:0)+this.state.touchMove[0]+this.gamepadAxes[0];
     const z=(k.has('KeyW')||k.has('ArrowUp')?1:0)-(k.has('KeyS')||k.has('ArrowDown')?1:0)-this.state.touchMove[1]-this.gamepadAxes[1];
-    this.walker?.move(this.camera,Math.min(dt,.05),x,z,this.state.yaw,active);
+    const elapsed=Math.min(dt,.25);
+    const steps=Math.max(1,Math.ceil(elapsed/.04));
+    for(let i=0;i<steps;i++) this.walker?.move(this.camera,elapsed/steps,x,z,this.state.yaw,active);
   }
   look(dx,dy) {
     if(!this.state.started||this.state.talking||!this.pause.hidden||this.transition||!byId('help').hidden)return;

@@ -39,18 +39,6 @@ async function createExteriorDetails() {
 
 }
 
-async function createHatchLandscape() {
-  const {url, matrix} = state.scene.environment.hatchLandscape;
-  const asset = await loadAsset(url,'gsplat','Fraser River beyond the hatch');
-  const hills = new pc.Entity('Fraser River beyond the hatch');
-  hills.addComponent('gsplat',{asset});
-  const transform = new pc.Mat4().set(matrix);
-  hills.setLocalPosition(transform.getTranslation());
-  hills.setLocalRotation(new pc.Quat().setFromMat4(transform));
-  hills.setLocalScale(transform.getScale());
-  app.root.addChild(hills);
-}
-
 async function createPanorama() {
   const panorama = state.scene.environment.panorama;
   const sky = new pc.Entity('Fraser River panorama');
@@ -414,7 +402,14 @@ function updateMarkers() {
     button.disabled=!canInteract(item);
     if(inside){button.style.left=screen.x+'px';button.style.top=screen.y+'px';}
   }
+  const ladder = markerButtons.find(entry => entry.item.type === 'portal');
   const near=nearestInteraction();
+  if (near?.type === 'portal' && ladder.button.hidden) {
+    ladder.button.hidden=false;
+    ladder.button.disabled=false;
+    ladder.button.style.left='50%';
+    ladder.button.style.top='30%';
+  }
   safeText(ui.prompt,near?'Press E / tap Interact · '+near.name:'');
 }
 function onLook(dx,dy) {
@@ -487,21 +482,27 @@ async function main() {
   if (arriving && !exterior) state.scene.spawn = state.scene.arrival;
   if (exterior) {
     document.title = "Fraser River | Pithouse";
+    document.querySelector(".brand strong").textContent = "FRASER RIVER";
     $("welcome-title").textContent = "Walk the Fraser River landscape";
     $("welcome-title").nextElementSibling.textContent = "Explore the roof and hillside. Return to the roof ladder to go inside.";
+  }
+  if (arriving) {
+    $('welcome-title').textContent = exterior ? 'Climbing to Fraser River…' : 'Descending into the pithouse…';
+    $('welcome-title').nextElementSibling.hidden = true;
+    resetButton.hidden = true;
   }
   const settings=exterior ? null : await json(state.scene.environment?.legacyAnnotations||'../settings.json').catch(e=>{console.warn('Legacy annotations unavailable',e);return null;});
   state.annotations=settings?.annotations||[];
   app=new pc.Application(ui.application,{graphicsDeviceOptions:{antialias:false,alpha:false}});
   app.setCanvasFillMode(pc.FILLMODE_FILL_WINDOW);app.setCanvasResolution(pc.RESOLUTION_AUTO);
-  app.graphicsDevice.maxPixelRatio=Math.min(Math.max(devicePixelRatio||1,MOBILE?1:1.25),MOBILE?1.5:2);
+  app.graphicsDevice.maxPixelRatio=exterior ? Math.min(devicePixelRatio || 1, 1280 / innerWidth, 1) : Math.min(Math.max(devicePixelRatio||1,MOBILE?1:1.25),MOBILE?1.5:2);
   app.start();
   createPlayer();
   handleInputs();
   await createSplat();
   await createPanorama();
   if (exterior) await createExteriorDetails();
-  else await createHatchLandscape();
+
   await createProps();
   await createCharacters();
   importAnnotations();
@@ -537,7 +538,10 @@ async function main() {
       if (entity) entity.enabled=false;
     }
     if (pending.voice) ui['voice-button'].click();
+    resetButton.hidden = false;
     resetButton.click();
+    $("welcome-title").nextElementSibling.hidden = false;
+    $("welcome-title").textContent = exterior ? "Walk the Fraser River landscape" : "Step inside the Pithouse.";
     sessionStorage.removeItem(travelKey);
   }
 }
