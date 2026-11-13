@@ -30,13 +30,29 @@ function placeSplat(entity, transform) {
 }
 
 async function createExteriorDetails() {
-  const {roof, panorama} = state.scene.environment;
+  const {roof} = state.scene.environment;
   const asset = await loadAsset(roof.url, 'gsplat', 'Pithouse roof');
   const house = new pc.Entity('Pithouse roof');
   house.addComponent('gsplat', {asset});
   placeSplat(house, roof);
   app.root.addChild(house);
 
+}
+
+async function createHatchLandscape() {
+  const {url, matrix} = state.scene.environment.hatchLandscape;
+  const asset = await loadAsset(url,'gsplat','Fraser River beyond the hatch');
+  const hills = new pc.Entity('Fraser River beyond the hatch');
+  hills.addComponent('gsplat',{asset});
+  const transform = new pc.Mat4().set(matrix);
+  hills.setLocalPosition(transform.getTranslation());
+  hills.setLocalRotation(new pc.Quat().setFromMat4(transform));
+  hills.setLocalScale(transform.getScale());
+  app.root.addChild(hills);
+}
+
+async function createPanorama() {
+  const panorama = state.scene.environment.panorama;
   const sky = new pc.Entity('Fraser River panorama');
   const material = new pc.StandardMaterial();
   material.useLighting = false;
@@ -277,6 +293,10 @@ function canInteract(item) {
 }
 function nearestInteraction() {
   const pos=camera.getPosition(),dir=camera.forward;
+  if (!exterior && dir.y > .42) {
+    const ladder = state.positions.find(item => item.type === 'portal');
+    if (canInteract(ladder)) return ladder;
+  }
   const candidates=state.positions.filter(canInteract).map(i=>{
     const delta=i.position.clone().sub(pos),distance=delta.length();
     const facing=delta.normalize().dot(dir);
@@ -479,7 +499,9 @@ async function main() {
   createPlayer();
   handleInputs();
   await createSplat();
+  await createPanorama();
   if (exterior) await createExteriorDetails();
+  else await createHatchLandscape();
   await createProps();
   await createCharacters();
   importAnnotations();
