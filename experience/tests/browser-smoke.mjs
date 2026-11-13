@@ -32,7 +32,9 @@ try {
   // Move the actual first-person camera into interaction range; interact via UI.
   await page.evaluate(async()=>{
     const pc=await import('playcanvas');const camera=pc.Application.getApplication().root.findByName('First person camera');
-    camera.setPosition(.95,1.65,.2);camera.lookAt(.95,1.2,2.2);
+    const scene=await (await fetch('./data/pithouse-scene.json')).json();
+    const [x,y,z]=scene.characters.find(n=>n.id==='elder').position;
+    camera.setPosition(x,y+1.65,z-1.9);camera.lookAt(x,y+1.2,z);
   });
   await page.keyboard.press('KeyE');
   await mode('Talk');

@@ -71,16 +71,16 @@
       "kind": "solid",
       "enabled": true,
       "center": [
-        0.95,
-        0.875,
-        2.2
+        0.8,
+        0.85,
+        2.24
       ],
       "size": [
-        0.86,
-        1.75,
-        0.86
+        1.04,
+        1.8,
+        1.22
       ],
-      "note": "Static Elder interaction capsule approximation. Blocks player movement while allowing dialogue proximity."
+      "note": "Envelope includes the forward reach and rear foot of the Working pose."
     }
   ],
   "characters": [
@@ -88,9 +88,9 @@
       "id": "elder",
       "name": "Elder",
       "position": [
-        0.95,
+        0.8,
         0,
-        2.2
+        2.4
       ],
       "yaw": 180,
       "model": "./assets/elder.glb",
@@ -102,9 +102,9 @@
         "Talk": "NlaTrack_Talking",
         "FireWork": "NlaTrack_Working"
       },
-      "placementNote": "Starter approximation: near original hearth annotation and beside the base of the center pole. Adjust with Blender NPC_Elder placement once mesh is overlaid.",
+      "placementNote": "Median voxel floor under the working envelope is 0 m. Keep the imported armature transform.",
       "autoStartDialogue": false,
-      "notes": "Blender 5.x combined skinned GLB: one mesh, one 33-joint armature, three embedded NLA clips. 1.7x scale compensates for roughly 1-metre GLB mesh height; verify against SOG.",
+      "notes": "Sampled skinned idle height is 1.70 m after placement scale; Working crouches and reaches toward the hearth.",
       "material": {
         "mode": "mask",
         "alphaCutoff": 0.1
@@ -214,7 +214,7 @@
     "warmthDetail": {
       "speaker": "Elder",
       "text": "This marked area was used for collecting warm stones and embers. When you are ready, we can return to your other questions.",
-      "camera": "hearth",
+      "camera": "elderWorking",
       "minDecisionSeconds": 0,
       "choices": [
         {
@@ -278,16 +278,16 @@
   "cameras": {
     "elder": {
       "position": [
-        1.35,
-        1.62,
-        0.75
+        1.2,
+        1.48,
+        0.88
       ],
       "target": [
-        0.95,
-        1.37,
-        2.2
+        0.8,
+        1.2,
+        2.4
       ],
-      "fov": 66,
+      "fov": 60,
       "duration": 0.65,
       "note": "Conversation close-up from in front of the Elder looking toward their upper torso."
     },
@@ -334,6 +334,21 @@
       "fov": 65,
       "duration": 0.72,
       "note": "Uses actual center-pole marker from original SuperSplat settings.json; shot authored to look upward along pole."
+    },
+    "elderWorking": {
+      "position": [
+        0.25,
+        1.15,
+        0.55
+      ],
+      "target": [
+        0.8,
+        0.65,
+        2.3
+      ],
+      "fov": 60,
+      "duration": 0.65,
+      "note": "Keep the crouching head and hands above the dialogue panel."
     }
   }
 }

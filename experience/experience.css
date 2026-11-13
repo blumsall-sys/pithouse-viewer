@@ -18,7 +18,7 @@ body.dialogue-open #crosshair,body.started #welcome {display:none}
 #status,#prompt,#collection,#debug {position:fixed;left:16px;background:rgba(18,15,12,.73);color:#e8d6b4;border:1px solid #6e5740;border-radius:5px;padding:8px 12px;font-size:12px;z-index:3;pointer-events:none}
 #status {bottom:15px} #prompt {top:90px;left:50%;transform:translateX(-50%);max-width:75vw;text-align:center} #collection {bottom:48px} #debug {top:144px;left:16px;white-space:pre;font-family:monospace}
 #prompt:empty,#collection:empty {display:none}
-.dialogue {position:fixed;z-index:7;bottom:max(24px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:min(800px,calc(100vw - 36px));background:var(--panel);border:2px solid #bb905e;border-radius:8px;box-shadow:0 14px 60px #000c;padding:20px clamp(18px,4vw,30px);backdrop-filter:blur(9px)}
+.dialogue {box-sizing:border-box;max-height:46dvh;overflow:auto;position:fixed;z-index:7;bottom:max(24px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:min(800px,calc(100vw - 36px));background:var(--panel);border:2px solid #bb905e;border-radius:8px;box-shadow:0 14px 60px #000c;padding:20px clamp(18px,4vw,30px);backdrop-filter:blur(9px)}
 .dialogue-header {display:flex;align-items:center;gap:12px;color:#f9dcaa;font-family:Georgia,serif;font-size:21px}.diamond {font-family:system-ui;color:var(--gold)}.dialogue-cue {margin-left:auto;letter-spacing:.2em;font:10px system-ui;color:#9e8a6d}
 .dialogue-text {font-family:Georgia,serif;font-size:clamp(17px,2.2vw,23px);line-height:1.55;min-height:60px;max-height:25vh;overflow:auto;margin:14px 0 20px}
 .choices {display:grid;gap:8px}.choice {text-align:left;background:#3f3023;color:#ffedd1;border:1px solid #8d6949;border-radius:5px;padding:11px 14px;font-size:14px}.choice:hover,.choice:focus-visible {background:#755138;border-color:var(--gold)}
@@ -50,6 +50,6 @@ body.dialogue-open #crosshair,body.started #welcome {display:none}
 #dialogue-back {white-space:nowrap;min-height:32px;}
 @media(max-width:750px) {
   .top-actions .quiet {font-size:11px;padding:6px 8px;}
-  .dialogue {max-height:62dvh;overflow:auto;}
+  .dialogue {max-height:46dvh;}
   .modal-actions button {min-height:38px;}
 }

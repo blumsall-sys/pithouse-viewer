@@ -6,7 +6,16 @@
   <meta name="theme-color" content="#15110d">
   <title>Pithouse | Interactive Journey</title>
   <link rel="stylesheet" href="./experience.css">
-  <script type="importmap">{"imports":{"playcanvas":"https://cdn.jsdelivr.net/npm/playcanvas@2.24.0/+esm"}}</script>
+  <script>
+    // The local launcher uses the pinned npm install, including when offline.
+    const engine = new URLSearchParams(location.search).has('localEngine')
+      ? './node_modules/playcanvas/build/playcanvas.min.mjs'
+      : 'https://cdn.jsdelivr.net/npm/playcanvas@2.24.0/+esm';
+    const imports = document.createElement('script');
+    imports.type = 'importmap';
+    imports.textContent = JSON.stringify({imports: {playcanvas: engine}});
+    document.head.append(imports);
+  </script>
 </head>
 <body>
   <canvas id="application" aria-label="Interactive three dimensional pithouse"></canvas>

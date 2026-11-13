@@ -1,6 +1,6 @@
 # Pithouse interactive experience
 
-Work on `feature/pithouse-interactive-experience`. The original viewer at `/`, SOG, settings, and voxel pair are preserved. This is a prototype; the original Elder's rendered acceptance checklist is still pending. Story text awaits cultural review.
+Work on `feature/pithouse-interactive-experience`. The original viewer at `/`, SOG, settings, and voxel pair are preserved. This is a prototype; the real Elder has been exercised in Chromium (see VALIDATION.md). Story text awaits cultural review.
 
 ## Windows setup
 
@@ -26,11 +26,11 @@ WASD/arrows walk, mouse look, Space jump, E interact, I inventory, Esc/P pause/b
 
 `data/pithouse-scene.json` owns placement, collider, cameras, clip names and policies. Elder dialogue nodes explicitly have `character: "elder"`; animation ownership never depends on speaker text or a previously selected topic. Normal Elder nodes Talk. Only the authored `warmthDetail` node requests `animation: "FireWork"`. Annotations/messages and exploration Idle. All three clips are required and loop, with 0.32-second crossfades. Missing clips or a damaged original root stop startup with diagnostics.
 
-The provided GLB is reported to use one BLEND material for the whole body. PlayCanvas imports BLEND as transparent with `depthWrite=false`. The new Elder policy uses `material: {"mode":"mask","alphaCutoff":0.1}`: retain the imported RGBA texture, opacity channel/UVs and double-sided lighting; discard low-alpha fragments and render surviving fragments in the opaque depth-writing pass. The original material and binary remain unchanged. **This cutoff is provisional until the actual model's hair/clothing edges are inspected.** It may require adjustment or an art-side material split. This does not prove that alpha caused every disappearance.
+The original mesh uses a single double-sided BLEND material. In a front-camera comparison, the back of the coat drew across the face and chest. The default MASK clone writes depth before splats, retains the original texture and uses a 0.1 cutoff. Only 44 of 4,194,304 source texels lie below that cutoff. Desktop rendering uses a 1.25x minimum pixel ratio for geometric edges. Multisampling stays off for compatibility with the scan. Culling stays enabled.
 
-Opaque depth-writing meshes render before transparent splats, allowing front splats to blend over meshes and behind splats to fail the mesh depth test. Gaussian translucency remains different from a solid wall. Do not force the SOG to write solid depth or draw the Elder as an overlay. Animated bone bounds and frustum culling remain enabled; no fixed AABB or culling bypass is applied by default.
+The placement parent now stands at [0.8, 0, 2.4] on the measured voxel floor. Idle stands about 1.70 m tall; the Working clip crouches and extends forward. Its separate camera and enlarged body collider account for that reach. The hearth and center-pole informational shots still show their subjects.
 
-Placement `[0.95,0,2.2]`, scale `1.7`, collider and authored shots remain provisional. They have not been moved without the actual skinned model and multi-angle evidence. No claim of grounded feet, correct facing or clearance from posts/hearth is made.
+For offline use after installing dependencies, run OPEN_ELDER_LOCAL.bat from the repository root. It opens the local-engine variant on an available localhost port and serves the checked-out files. The model and npm install are already present in the delivered local copy.
 
 ## Diagnostics
 

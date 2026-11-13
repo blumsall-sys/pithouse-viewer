@@ -422,7 +422,7 @@ async function main() {
   state.annotations=settings?.annotations||[];
   app=new pc.Application(ui.application,{graphicsDeviceOptions:{antialias:false,alpha:false}});
   app.setCanvasFillMode(pc.FILLMODE_FILL_WINDOW);app.setCanvasResolution(pc.RESOLUTION_AUTO);
-  app.graphicsDevice.maxPixelRatio=Math.min(devicePixelRatio||1,MOBILE?1.5:2);
+  app.graphicsDevice.maxPixelRatio=Math.min(Math.max(devicePixelRatio||1,MOBILE?1:1.25),MOBILE?1.5:2);
   app.start();
   createPlayer();
   handleInputs();
