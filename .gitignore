@@ -1,0 +1,4 @@
+# Licensed character installed locally; never publish it accidentally.
+experience/assets/elder.glb
+experience/test-results/
+node_modules/
