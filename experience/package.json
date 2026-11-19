@@ -1,0 +1,14 @@
+{
+  "name": "pithouse-experience-checks",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "validate": "node tools/validate-scene.mjs",
+    "test:browser": "node tests/browser-smoke.mjs"
+  },
+  "devDependencies": {
+    "playcanvas": "2.24.0",
+    "playwright": "1.56.1"
+  }
+}
