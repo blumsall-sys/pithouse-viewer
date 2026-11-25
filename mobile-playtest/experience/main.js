@@ -1,6 +1,7 @@
 import * as pc from 'playcanvas';
 import { AdventureRuntime } from './adventure-runtime.js';
 import { dialogueAnimation, validateArmature, configureElderMaterials, elderSnapshot } from './elder-runtime.js';
+import { travelKey, fishingKey, readSession, saveSession, progress, fishingTrip } from './journey.js';
 
 // Independent PlayCanvas runtime. Original SuperSplat viewer remains untouched.
 const $ = (id) => document.getElementById(id);
@@ -11,16 +12,24 @@ const v3 = (p) => new pc.Vec3(...p);
 const safeText = (el, value) => { el.textContent = String(value ?? ''); };
 const exterior = new URLSearchParams(location.search).get('scene') === 'fraser';
 const sceneURL = exterior ? './data/fraser-river.json' : './data/pithouse-scene.json';
-const travelKey = 'pithouse-ladder-trip';
 
 function crossLadder() {
   const url = new URL(location.href);
   if (exterior) url.searchParams.delete('scene');
   else url.searchParams.set('scene', 'fraser');
-  sessionStorage.setItem(travelKey, JSON.stringify({
+  saveSession(sessionStorage, travelKey, {
     outside: !exterior, inventory: adventure.inventory, elderMet: adventure.elderMet, voice: state.voice
-  }));
+  });
   location.replace(url);
+}
+
+function goFishing() {
+  saveSession(sessionStorage, fishingKey, fishingTrip(location.href, {
+    inventory: adventure.inventory, elderMet: adventure.elderMet, voice: state.voice
+  }));
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+  state.keys.clear();
+  location.assign(new URL('../../fishing/', location.href));
 }
 
 function placeSplat(entity, transform) {
@@ -293,7 +302,7 @@ function interactWith(item) {
         {label:'Climb to Fraser River',action:crossLadder}
       ]);
       break;
-    case 'npc': showNode(adventure?.elderMet?'topics':(item.dialogue||'welcome'));break;
+    case 'npc': showNode(exterior ? item.dialogue : adventure?.elderMet?'topics':(item.dialogue||'welcome'));break;
     case 'annotation':showAnnotation(item.index);break;
     case 'hotspot':item.dialogue?showNode(item.dialogue):showMessage(item.name,'This object is ready for an authored interaction.');break;
     case 'collectible':
@@ -377,6 +386,7 @@ function choose(choice) {
   // Clip switches are selected by the next dialogue topic, not by button press.
   // Reusing the dialogue camera across linked nodes prevents unintended snaps.
   closeDialogueForChoice();
+  if (choice.action === 'fishing' && exterior) { goFishing(); return; }
   if(choice.action==='annotation'&&typeof choice.annotationIndex==='number') {showAnnotation(choice.annotationIndex);return;}
   if(choice.next){showNode(choice.next);return;}
   adventure?.endDialogue();
@@ -460,14 +470,14 @@ function handleInputs() {
 }
 async function main() {
   state.scene=await json(sceneURL);
-  const pending = JSON.parse(sessionStorage.getItem(travelKey) || "null");
+  const pending = readSession(sessionStorage, travelKey);
   const arriving = pending?.outside === exterior;
-  if (arriving && !exterior) state.scene.spawn = state.scene.arrival;
+  if (arriving && !exterior && !pending.fromFishing) state.scene.spawn = state.scene.arrival;
   if (exterior) {
     document.title = "Fraser River | Pithouse";
     document.querySelector(".brand strong").textContent = "FRASER RIVER";
     $("welcome-title").textContent = "Walk the Fraser River landscape";
-    $("welcome-title").nextElementSibling.textContent = "Explore the roof and hillside. Return to the roof ladder to go inside.";
+    $("welcome-title").nextElementSibling.textContent = "Explore the hillside and meet the Elder at the river to learn dipnet fishing. Return to the roof ladder to go inside.";
   }
   if (arriving) {
     $('welcome-title').textContent = exterior ? 'Climbing to Fraser River…' : 'Descending into the pithouse…';
@@ -496,7 +506,8 @@ async function main() {
   status('Initializing voxel collision…');
   await adventure.initialize();
   if(diagnostics)window.pithouseDebug={
-    snapshot:()=>({animation:currentElderMode,activeState:npcAnim?.baseLayer.activeState,animationTime:npcAnim?.baseLayer.activeStateCurrentTime,meshes:elderSnapshot(elderMeshes),camera:camera.getPosition().toArray()}),
+    snapshot:()=>({animation:currentElderMode,activeState:npcAnim?.baseLayer.activeState,animationTime:npcAnim?.baseLayer.activeStateCurrentTime,meshes:elderSnapshot(elderMeshes),camera:camera.getPosition().toArray(),inventory:adventure.inventory,elderMet:adventure.elderMet,scene:exterior?'fraser':'pithouse'}),
+    setPose:(position,target)=>{adventure.transition=null;adventure.savedPose=null;adventure.currentShot=null;adventure.walker.reset(camera,v3(position));aimAt(v3(target),camera.getPosition());},
     splat:(visible)=>{splatEntity.enabled=Boolean(visible);},
     bounds:()=>{for(const mesh of elderMeshes)app.drawWireAlignedBox(mesh.aabb.getMin(),mesh.aabb.getMax(),pc.Color.YELLOW);}
   };
@@ -513,9 +524,11 @@ async function main() {
   state.ready=true;status(adventure.walker?.voxel?'Ready · SOG + voxel walk collision':'Ready · SOG loaded, voxel collision unavailable');
   resetButton.disabled=false;safeText(resetButton,'Begin the journey');
   if (arriving) {
-    adventure.inventory = pending.inventory;
-    adventure.elderMet = pending.elderMet;
-    state.collected = new Set(pending.inventory.map(item => item.id));
+    const restored = progress(pending);
+    adventure.inventory = restored.inventory;
+    adventure.elderMet = restored.elderMet;
+    ui.collection.textContent = 'Inventory: '+restored.inventory.length+' item'+(restored.inventory.length===1?'':'s')+' · Press I';
+    state.collected = new Set(restored.inventory.map(item => item.id));
     for (const id of state.collected) {
       const entity = state.nodes.get('item:'+id);
       if (entity) entity.enabled=false;
@@ -525,7 +538,7 @@ async function main() {
     resetButton.click();
     $("welcome-title").nextElementSibling.hidden = false;
     $("welcome-title").textContent = exterior ? "Walk the Fraser River landscape" : "Step inside the Pithouse.";
-    sessionStorage.removeItem(travelKey);
+    try { sessionStorage.removeItem(travelKey); } catch {}
   }
 }
 main().catch(fail);

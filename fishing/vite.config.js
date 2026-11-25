@@ -1,0 +1,1 @@
+import {defineConfig} from 'vite'; export default defineConfig({base:'./',resolve:{preserveSymlinks:true},server:{port:5173},build:{rollupOptions:{output:{manualChunks:{playcanvas:['playcanvas']}}},chunkSizeWarningLimit:2400}});

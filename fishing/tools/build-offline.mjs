@@ -1,0 +1,12 @@
+import {build} from 'esbuild';
+import fs from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+const scratch=path.join(root,'.offline-build');fs.mkdirSync(scratch,{recursive:true});
+await build({absWorkingDir:root,entryPoints:['src/main.js'],bundle:true,format:'iife',target:'es2022',outfile:path.join(scratch,'game.js'),minify:true,logLevel:'warning'});
+const assetPaths=['audio/intro.wav','audio/begin.wav','audio/success.wav','audio/fail.wav','audio/bank.wav','audio/release.wav','audio/finish.wav','audio/pause.wav','fishing-badges.png','models/dip_net_frame.glb','models/npc_fisher_host.glb','models/basket.glb','models/salmon_sockeye.glb','models/salmon_chinook.glb','models/river_surface.glb','models/river_rocks.glb','splats/fraser_canyon_bank.spz','water-normal.png','river-panorama.jpg'];
+const assets=Object.fromEntries(assetPaths.map(p=>['./assets/'+p,fs.readFileSync(path.join(root,'public/assets',p)).toString('base64')]));
+const level=JSON.parse(fs.readFileSync(path.join(root,'public/assets/level.json'))),css=fs.readFileSync(path.join(scratch,'game.css'),'utf8'),js=fs.readFileSync(path.join(scratch,'game.js'),'utf8').replaceAll('</script','<\/script');
+const html=`<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' blob:; style-src 'unsafe-inline'; img-src blob: data:; media-src blob: data:; connect-src blob: data:; worker-src blob:; font-src data:;"><title>Fraser River — Offline Revision 12</title><style>${css}</style></head><body><canvas id="game" aria-label="First person river fishing game"></canvas><div id="ui"></div><script>globalThis.__FRASER_ASSETS=${JSON.stringify(assets)};globalThis.__FRASER_LEVEL=${JSON.stringify(level)};</script><script>${js}</script></body></html>`;
+fs.mkdirSync(path.join(root,'dist'),{recursive:true});fs.writeFileSync(path.join(root,'dist/Fraser-Fishing-Offline.html'),html);console.log('Standalone offline game written:',Math.round(Buffer.byteLength(html)/1024/1024)+' MB');

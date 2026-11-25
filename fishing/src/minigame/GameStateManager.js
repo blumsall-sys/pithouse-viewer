@@ -1,0 +1,1 @@
+export class GameStateManager{constructor(){this.reset();}set(state){this.state=state;}update(dt){if(this.state==='PLAYING'){this.time=Math.max(0,this.time-dt);if(this.time===0){this.state='RETURN';return true;}}return false;}reset(){this.state='EXPLORE';this.time=60;}}

@@ -1,0 +1,15 @@
+const http=require('node:http');const fs=require('node:fs');const path=require('node:path');const {spawn}=require('node:child_process');
+const port=Number(process.env.FRASER_PORT||8083),host='127.0.0.1',origin=`http://${host}:${port}`,root=path.resolve(__dirname,'../dist');
+function openBrowser(){const child=spawn('rundll32.exe',['url.dll,FileProtocolHandler',origin+'/'],{detached:true,stdio:'ignore',windowsHide:true});child.unref();}
+if(process.argv.includes('--stop')){const req=http.request(origin+'/__local/stop',{method:'POST',headers:{'X-Fraser-Local-Control':'1'}},r=>{r.resume();console.log('Local game server stopped.');});req.on('error',()=>console.log('Local server is not running.'));req.end();}
+else{
+ if(!fs.existsSync(path.join(root,'index.html'))){console.error('Build not found. Run npm run build in the game folder first.');process.exit(1);}
+ const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json','.png':'image/png','.jpg':'image/jpeg','.glb':'model/gltf-binary','.spz':'application/octet-stream','.wav':'audio/wav','.wasm':'application/wasm'};
+ const server=http.createServer((req,res)=>{
+  if(req.url==='/__local/status'){res.setHeader('Content-Type','application/json');res.end(JSON.stringify({app:'fraser-fishing-local',version:7,root,authentication:false}));return;}
+  if(req.url==='/__local/stop'&&req.method==='POST'&&req.headers['x-fraser-local-control']==='1'&&(!req.headers.origin||req.headers.origin===origin)){res.end('Stopped');server.close(()=>process.exit(0));return;}
+  let pathname;try{pathname=decodeURIComponent(new URL(req.url,origin).pathname);}catch{res.writeHead(400).end();return;}
+  const file=path.resolve(root,'.'+(pathname==='/'?'/index.html':pathname));if(!file.startsWith(root+path.sep)){res.writeHead(403).end();return;}
+  fs.stat(file,(err,stat)=>{if(err||!stat.isFile()){res.writeHead(404).end('Not found');return;}res.writeHead(200,{'Content-Type':types[path.extname(file)]||'application/octet-stream','Content-Length':stat.size,'Cache-Control':'no-cache','Content-Security-Policy':"default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self' blob:; worker-src 'self' blob:; font-src 'self'; object-src 'none'"});fs.createReadStream(file).pipe(res);});
+ });server.on('error',error=>{if(error.code!=='EADDRINUSE'){console.error(error.message);process.exitCode=1;return;}http.get(origin+'/__local/status',r=>{let data='';r.on('data',c=>data+=c);r.on('end',()=>{if(data.includes('fraser-fishing-local')){console.log('Local game is already running at '+origin);if(process.argv.includes('--open'))openBrowser();}else{console.error('Port 8080 is occupied by another app. Set FRASER_PORT to choose another port.');process.exitCode=1;}});}).on('error',e=>console.error(e.message));});server.listen(port,host,()=>{console.log('Local fishing game: '+origin+'\nFiles: '+root+'\nNo sign-in or cloud connection. Ctrl+C stops this server.');if(process.argv.includes('--open'))openBrowser();});
+}

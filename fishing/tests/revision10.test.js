@@ -1,0 +1,10 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {ScoopGauge} from '../src/minigame/ScoopGauge.js';
+import {DipNetController} from '../src/minigame/DipNetController.js';
+import {BasketController} from '../src/minigame/BasketController.js';
+import {avoidBasket,avoidBasketHandle,projectBasketRope} from '../src/minigame/BasketAvoidance.js';
+test('winding starts the oscillating arc before a fish is selected',()=>{const g=new ScoopGauge();g.update(.3,null,false,true);assert.equal(g.active,true);assert.ok(g.value>0);assert.equal(g.quality(),'miss');});
+for(const id of ['smolt','sockeye','chinook'])test(id+' has a centered sweet spot with clean, sluggish and missed releases',()=>{const g=new ScoopGauge(),f={species:{id}};g.update(0,f,true,true);assert.ok(Math.abs((g.start+g.end)/2-.5)<1e-8);for(const [value,result]of [[.5,'clean'],[.23,'sluggish'],[.98,'miss']]){g.elapsed=value*g.period/2;g.update(0,f,true,true);assert.equal(g.quality(),result);const n={submerged:true,gauge:g,scoopLock:f,clock:0,onMessage(){}};DipNetController.prototype.up.call(n);assert.equal(n.scoopQuality,result);assert.equal(n.scoopMiss,result==='miss');assert.equal(n.lift,result==='clean'?.9:1.8);}});
+test('net bag and hoop clear the basket; shaft swings around it',()=>{const b={x:0,z:0,baseY:.3,rimY:.82},p={x:.3,y:.5,z:0},grip={x:2,y:1,z:0};assert.ok(avoidBasket(p,grip,b));assert.ok(Math.hypot(p.x-b.x,p.z-b.z)>1.24);assert.ok(p.y<=.5);const knot={x:0,y:.5,z:0};assert.ok(projectBasketRope(knot,b));assert.ok(Math.hypot(knot.x-b.x,knot.z-b.z)>.61);const far={x:-2,y:.6,z:0},hand={x:0,y:1,z:0};assert.ok(avoidBasketHandle(hand,far,b));assert.ok(Math.abs(hand.z)>.2);});
+test('placement rests on the dry base footprint and ignores a lone high splat',()=>{const g={minX:-1,minZ:-1,cell:.1,width:20,height:20,heights:Array(400).fill(.4)};g.heights[210]=1.2;const level={basket:[0,.4,0],waterY:-.3,placementGrid:g},nav={sample:()=>.4},b=new BasketController(null,level,nav,null,()=>{});assert.ok(Math.abs(b.canPlace(0,0)-.406)<1e-8);nav.sample=(x,z)=>x>.15?null:.4;assert.equal(b.canPlace(0,0),null);});

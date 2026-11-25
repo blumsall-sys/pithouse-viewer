@@ -1,0 +1,21 @@
+{
+  "name": "fraser-river-fishing",
+  "version": "1.12.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "test": "node --test",
+    "start": "node tools/local-server.cjs --open",
+    "serve": "node tools/local-server.cjs",
+    "build:offline": "node tools/build-offline.mjs",
+    "test:gameplay": "node --test tests/experience-flow.test.js tests/gameplay.test.js tests/net-physics.test.js tests/revision4.test.js tests/revision5.test.js tests/terrain-carry.test.js tests/revision6.test.js tests/revision7.test.js tests/revision8.test.js tests/revision9.test.js tests/revision10.test.js tests/revision11.test.js tests/revision12.test.js"
+  },
+  "dependencies": {
+    "playcanvas": "^2.0.0",
+    "vite": "^6.0.0"
+  },
+  "devDependencies": {
+    "@playcanvas/splat-transform": "^3.11.2"
+  }
+}

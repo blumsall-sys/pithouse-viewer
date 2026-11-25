@@ -1,0 +1,11 @@
+{
+  "name": "pithouse-fishing-journey",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "preview": "node tools/serve.mjs",
+    "build": "node tools/build-site.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "test:browser": "node tests/journey-browser.mjs"
+  }
+}

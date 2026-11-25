@@ -15,7 +15,7 @@ function elem(tag,cls,parent,text) {
 function newButton(parent,text,handler,cls='secondary') {
   const b=elem('button',cls,parent,text); b.type='button';b.addEventListener('click',handler);return b;
 }
-class WalkCollision {
+export class WalkCollision {
   // Locomotion controller in voxel/world space. Camera shots never modify nav state.
   constructor(pc,voxel,manifest) {
     this.pc=pc; this.voxel=voxel; this.scene=manifest;
@@ -236,7 +236,7 @@ export class AdventureRuntime {
     this.ambience.start();
     this.pause.hidden=true;this.backAction=null;this.savedPose=null;this.transition=null;this.currentShot=null;
     this.state.talking=false;this.walker?.reset(this.camera,V(this.pc,this.scene.spawn.position));
-    this.status(this.scene.environment.placement ? 'Fraser River · Return to the roof ladder to go inside' : 'Walk to the Elder or climb the roof ladder · E to interact');
+    this.status(this.scene.environment.placement ? 'Fraser River · Meet the Elder by the water to learn dipnet fishing' : 'Walk to the Elder or climb the roof ladder · E to interact');
   }
   step(dt) {
     this.pollGamepad(dt);

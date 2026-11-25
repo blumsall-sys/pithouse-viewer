@@ -1,0 +1,38 @@
+name: Build and check pithouse fishing journey
+on:
+  push:
+    branches: [feature/pithouse-dipnet-fishing]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --prefix mobile-playtest/experience
+      - run: npm ci --prefix fishing
+      - run: npm test
+      - run: npm test --prefix mobile-playtest/experience
+      - run: npm run build
+      - run: npm test --prefix fishing
+      - run: npx --prefix mobile-playtest/experience playwright install --with-deps chromium
+      - name: Check the complete browser journey
+        run: |
+          node tools/serve.mjs > /tmp/pithouse-preview.log 2>&1 &
+          npm run test:browser
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pithouse-fishing-site
+          path: dist
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: journey-browser-review
+          path: test-results
+          if-no-files-found: ignore
