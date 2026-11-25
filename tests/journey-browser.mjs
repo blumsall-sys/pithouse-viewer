@@ -95,6 +95,7 @@ try {
   console.log('Touch portrait summary and reset');
   const mobile=await browser.newPage({viewport:{width:390,height:844},hasTouch:true,isMobile:true,deviceScaleFactor:1});
   if(process.env.PITHOUSE_OFFLINE)await installOfflineSite(mobile);
+  mobile.setDefaultTimeout(60000);mobile.setDefaultNavigationTimeout(180000);
   mobile.on('pageerror',e=>errors.push(e.message));
   await mobile.goto(new URL('fishing/',origin).href);
   await mobile.waitForFunction(()=>window.fishingGame,null,{timeout:180000});
