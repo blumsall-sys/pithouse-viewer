@@ -505,7 +505,7 @@ async function main() {
   });
   status('Initializing voxel collision…');
   await adventure.initialize();
-  adventure.settingsMenu=new ExperienceMenu({onOpen:()=>{state.settingsOpen=true;state.keys.clear();state.touchMove=[0,0];},onClose:()=>{state.settingsOpen=false;},onVoice:enabled=>{state.voice=enabled;}});
+  adventure.settingsMenu=new ExperienceMenu({onInventory:()=>adventure.openInventory(),onSound:enabled=>adventure.ambience.setEnabled(enabled),onOpen:()=>{state.settingsOpen=true;state.keys.clear();state.touchMove=[0,0];},onClose:()=>{state.settingsOpen=false;},onVoice:enabled=>{state.voice=enabled;}});
   if(diagnostics)window.pithouseDebug={
     snapshot:()=>({animation:currentElderMode,activeState:npcAnim?.baseLayer.activeState,animationTime:npcAnim?.baseLayer.activeStateCurrentTime,meshes:elderSnapshot(elderMeshes),camera:camera.getPosition().toArray(),inventory:adventure.inventory,elderMet:adventure.elderMet,scene:exterior?'fraser':'pithouse',shotMoving:Boolean(adventure.transition),grounded:adventure.walker.grounded,feetY:adventure.walker.feetY,eyeHeight:adventure.walker.eyeHeight,elderEyes:(()=>{const elder=state.nodes.get('npc:elder'),head=elder?.findByName('mixamorig:Head'),top=elder?.findByName('mixamorig:HeadTop_End');return head&&top?head.getPosition().y+(top.getPosition().y-head.getPosition().y)*.55:null;})()}),
     setPose:(position,target)=>{adventure.transition=null;adventure.savedPose=null;adventure.currentShot=null;adventure.walker.reset(camera,v3(position));aimAt(v3(target),camera.getPosition());},

@@ -24,7 +24,7 @@ try{
   }
   async function menu(){
     await page.locator('#settings-button').tap();
-    for(const id of ['settings-resume','settings-voice','settings-help','settings-reset'])assert.equal(await page.locator('#'+id).isVisible(),true);
+    for(const id of ['settings-resume','settings-voice','settings-sound','settings-help','settings-reset'])assert.equal(await page.locator('#'+id).isVisible(),true);
     const css=await page.locator('#settings-reset').evaluate(e=>({font:getComputedStyle(e).fontSize,height:e.getBoundingClientRect().height}));
     assert.equal(css.font,'16px');assert.ok(css.height>=44);
   }

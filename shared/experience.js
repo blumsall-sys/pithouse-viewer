@@ -53,7 +53,7 @@ export function resetJourney() {
 
 // Identical core settings and keyboard behavior in every part of the journey.
 export class ExperienceMenu {
-  constructor({onOpen=()=>{}, onClose=()=>{}, onVoice=()=>{}, onRestart, onReturn}={}) {
+  constructor({onOpen=()=>{}, onClose=()=>{}, onVoice=()=>{}, onSound=()=>{}, onInventory, onRestart, onReturn}={}) {
     Object.assign(this,{onOpen,onClose,onVoice}); this.opened=false;
     this.button=document.createElement('button'); this.button.id='settings-button';
     this.button.className='journey-menu-button'; this.button.textContent='Menu';
@@ -65,8 +65,16 @@ export class ExperienceMenu {
     const add=(id,label,fn)=>{const b=document.createElement('button');b.id=id;b.textContent=label;b.className='secondary';b.onclick=fn;actions.append(b);return b;};
     add('settings-resume','Resume',()=>this.close());
     this.voice=add('settings-voice','',()=>{narration.setEnabled(!narration.enabled);this.updateVoice();this.onVoice(narration.enabled);});
-    add('settings-help','Controls',()=>{const p=this.root.querySelector('#settings-controls');p.hidden=!p.hidden;if(!p.hidden)narration.speak(p.textContent);});
     add('settings-reset','Reset experience',resetJourney);
+    this.soundEnabled=preferences().sound!==false;
+    if(!this.soundEnabled)onSound(false);
+    this.sound=add('settings-sound','Sound: '+(this.soundEnabled?'On':'Off'),()=>{
+      this.soundEnabled=!this.soundEnabled;onSound(this.soundEnabled);
+      this.sound.textContent='Sound: '+(this.soundEnabled?'On':'Off');
+      try{sessionStorage.setItem(preferenceKey,JSON.stringify({...preferences(),sound:this.soundEnabled}));}catch{}
+    });
+    add('settings-help','Controls',()=>{const p=this.root.querySelector('#settings-controls');p.hidden=!p.hidden;if(!p.hidden)narration.speak(p.textContent);});
+    if(onInventory)add('settings-inventory','Inventory',()=>{this.close();onInventory();});
     if(onRestart)add('settings-restart-fishing','Reset fishing game',()=>{this.close();onRestart();});
     if(onReturn)add('settings-return','Return to the pithouse',onReturn);
     this.button.onclick=()=>this.opened?this.close():this.open();
