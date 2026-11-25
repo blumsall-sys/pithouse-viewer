@@ -26,7 +26,7 @@ Open **http://127.0.0.1:8170/experience/**. Serve `dist/`, which includes the or
 
 For browser regression checks, install Chromium once with `npx --prefix mobile-playtest/experience playwright install chromium`, keep the preview running, then run `npm run test:browser`. `PITHOUSE_URL` overrides the preview base URL and `CHROMIUM_PATH` selects an existing browser executable. The browser check covers the ladder, invitation decline/accept, normal fishing briefing, results for both outcomes with an accelerated round clock, full reset, and return with a collected inventory item. Gameplay physics are covered separately by the fishing tests. Review images are written to `test-results/`.
 
-The branch workflow runs checks, builds the complete site, and uploads `pithouse-fishing-site` and browser review artifacts. GitHub Pages publishes the complete built site from the `gh-pages` branch at https://blumsall-sys.github.io/pithouse-viewer/. The source stays on `feature/pithouse-dipnet-fishing`. To publish an update, build the checked-in source and commit all of `dist/` to `gh-pages`; `version.json` records the source commit. The fishing source directory alone is not a static deployment.
+The branch workflow runs checks, builds the complete site, and uploads `pithouse-fishing-site` and browser review artifacts. GitHub Pages publishes the complete built site from the `main` branch at https://blumsall-sys.github.io/pithouse-viewer/. The source stays on `feature/pithouse-dipnet-fishing`. To publish an update, build the checked-in source and commit all of `dist/` to the publishing branch `main`; `version.json` records the source commit. The fishing source directory alone is not a static deployment.
 
 ### Local build provenance
 
