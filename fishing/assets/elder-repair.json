@@ -1,0 +1,10 @@
+{
+  "original_alpha_modes": [
+    "BLEND"
+  ],
+  "repaired_alpha_mode": "OPAQUE",
+  "double_sided": true,
+  "triangles": 64960,
+  "source_triangles": 287495,
+  "texture_max": 2048
+}

@@ -9,13 +9,14 @@
   <script>
     // The local launcher uses the pinned npm install, including when offline.
     const engine = new URLSearchParams(location.search).has('localEngine')
-      ? './node_modules/playcanvas/build/playcanvas.min.mjs'
-      : 'https://cdn.jsdelivr.net/npm/playcanvas@2.24.0/+esm';
+      ? './vendor/playcanvas.min.mjs'
+      : './vendor/playcanvas.min.mjs';
     const imports = document.createElement('script');
     imports.type = 'importmap';
     imports.textContent = JSON.stringify({imports: {playcanvas: engine}});
     document.head.append(imports);
   </script>
+<link rel="icon" href="data:,">
 </head>
 <body>
   <canvas id="application" aria-label="Interactive three dimensional pithouse"></canvas>

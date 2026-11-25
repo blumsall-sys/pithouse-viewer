@@ -1,0 +1,13 @@
+{
+  "source": "DipnetFrameOnly_.glb",
+  "source_sha256": "28b7db6b12de123e49d3d4bc2dab8e6f2b436f606de7e9ca9f229f1f0a2c23f9",
+  "faces": 37516,
+  "uniform_scale": 2.0395638293980554,
+  "rim_center_source": [
+    -1.06106436252594,
+    0.0,
+    0.019092261791229248
+  ],
+  "handle_length": 3.468040164543832,
+  "aperture_radius": 0.54
+}
