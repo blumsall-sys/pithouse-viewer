@@ -1,3 +1,4 @@
+import {resetJourney,landscapeDialogueShot,narration} from '../../shared/experience.js';
 /* Pithouse experience systems v0.3: ground walking, conversations, inventory,
    authored camera shots, USB gamepad, and synthesized CC0-style ambience.
    Self-contained; depends only on PlayCanvas v2.24 and browser APIs. */
@@ -138,7 +139,8 @@ export class WalkCollision {
       }
     }else {
       this.vy-=12.5*dt;
-      const next=this.feetY+this.vy*dt;
+      let next=this.feetY+this.vy*dt;
+      if(this.vy>0&&this.solid(pos.x,next+this.eyeHeight+.12,pos.z)){next=this.feetY;this.vy=0;}
       if(this.vy<=0&&Number.isFinite(detected)&&next<=detected+.055&&this.feetY>=detected-.18) {
         this.feetY=detected+.055;this.vy=0;this.grounded=true;this.groundLost=0;
       }else this.feetY=next;
@@ -147,7 +149,7 @@ export class WalkCollision {
       const floor=Number(this.scene.movement?.fallbackFloorY??0);
       if(this.feetY<floor){this.feetY=floor;this.vy=0;this.grounded=true;}
     }
-    this.feetY=Math.min(this.feetY,this.scene.movement?.maxFeetY ?? Infinity);
+    if(this.grounded)this.feetY=Math.min(this.feetY,this.scene.movement?.maxFeetY ?? Infinity);
     if(this.voxel) {
       if(this.grounded && Number.isFinite(detected)) {
         this.lastGroundedPosition.set(pos.x, this.feetY+this.eyeHeight, pos.z);
@@ -242,7 +244,7 @@ export class AdventureRuntime {
     this.pollGamepad(dt);
     this.ambience.tick();
     this.animateCamera(dt);
-    const help=byId('help'),active=this.state.started&&!this.state.talking&&this.pause.hidden&&help.hidden&&!this.transition;
+    const help=byId('help'),active=!this.state.settingsOpen&&this.state.started&&!this.state.talking&&this.pause.hidden&&help.hidden&&!this.transition;
     const k=this.state.keys;
     const x=(k.has('KeyD')||k.has('ArrowRight')?1:0)-(k.has('KeyA')||k.has('ArrowLeft')?1:0)+this.state.touchMove[0]+this.gamepadAxes[0];
     const z=(k.has('KeyW')||k.has('ArrowUp')?1:0)-(k.has('KeyS')||k.has('ArrowDown')?1:0)-this.state.touchMove[1]-this.gamepadAxes[1];
@@ -251,14 +253,14 @@ export class AdventureRuntime {
     for(let i=0;i<steps;i++) this.walker?.move(this.camera,elapsed/steps,x,z,this.state.yaw,active);
   }
   look(dx,dy) {
-    if(!this.state.started||this.state.talking||!this.pause.hidden||this.transition||!byId('help').hidden)return;
+    if(!this.state.started||this.state.settingsOpen||this.state.talking||!this.pause.hidden||this.transition||!byId('help').hidden)return;
     this.state.yaw-=dx*.17;this.state.pitch=clamp(this.state.pitch-dy*.16,-77,77);
     this.camera.setEulerAngles(this.state.pitch,this.state.yaw,0);
   }
   poseFromShot(node,id) {
     const source=node.camera||((id==='welcome'||id==='stoneDiscussion')?'elder':null);
     const shot=typeof source==='string'?this.scene.cameras?.[source]:source;
-    if(shot&&Array.isArray(shot.position)&&Array.isArray(shot.target))return shot;
+    if(shot&&Array.isArray(shot.position)&&Array.isArray(shot.target))return node.character==='elder'?landscapeDialogueShot(shot):shot;
     if(node.focus)return {position:this.camera.getPosition().toArray(),target:node.focus,fov:70,duration:.55};
     return null;
   }
@@ -361,6 +363,7 @@ export class AdventureRuntime {
     this.openModal('Inventory',this.inventory.length?'Select an item to inspect. The Elder can discuss collected objects.':'Explore the pithouse to discover objects you can take.',buttons);
   }
   openPause() {
+    if(this.settingsMenu){this.settingsMenu.open();return;}
     if(!this.state.started)return;
     this.openModal('Paused','Return to exploring, inspect what you found, or restart the demonstration.',[
       {label:'Resume',action:()=>this.closeModal()},
@@ -371,6 +374,7 @@ export class AdventureRuntime {
     ]);
   }
   openModal(title,description,choices,subtitle='') {
+    narration.speak([title,description,subtitle].filter(Boolean).join('. '));
     if(document.pointerLockElement)document.exitPointerLock();
     this.pause.hidden=false;this.modalChoice=0;this.modalTitle.textContent=title;this.modalText.textContent=description||'';
     this.modalDetails.textContent=subtitle;this.modalButtons.replaceChildren();
@@ -378,16 +382,10 @@ export class AdventureRuntime {
     this.backAction=()=>this.closeModal();
     this.modalButtons.querySelector('button')?.focus();
   }
-  closeModal(){this.pause.hidden=true;this.backAction=null;}
+  closeModal(){narration.stop();this.pause.hidden=true;this.backAction=null;}
   back() {if(!this.pause.hidden){this.closeModal();return;}if(this.state.talking){this.cancelDialogue();return;}this.openPause();}
   cancelDialogue(){if(!this.state.talking)return;this.closeDialogue();this.status('Conversation closed · continue exploring');}
-  reset(){
-    const start=new URL(location.href);
-    start.searchParams.delete('scene');
-    sessionStorage.removeItem('pithouse-ladder-trip');
-    location.replace(start.href);
-
-  }
+  reset(){resetJourney();}
   skipTyping() {
     if(!this.state.typing)return false;
     this.state.typeElapsed=1e4;this.state.timer=this.state.minSeconds;
