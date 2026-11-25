@@ -12,6 +12,12 @@ await mkdir(out, { recursive: true });
 for (const file of ['index.html', 'pithouse.sog', 'settings.json', 'scene.voxel.json', 'scene.voxel.bin', 'LICENSE-SUPERSPLAT-VIEWER.txt']) {
   await copyFile(path.join(root, file), path.join(out, file));
 }
+await copyFile(path.join(root,'index.html'),path.join(out,'original-viewer.html'));
+await copyFile(path.join(root,'site-entry.html'),path.join(out,'index.html'));
+await writeFile(path.join(out,'.nojekyll'),'');
+const revision=spawnSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'});
+if(revision.status!==0)throw new Error('Cannot record the published source revision');
+await writeFile(path.join(out,'version.json'),JSON.stringify({sourceCommit:revision.stdout.trim(),experience:'pithouse-and-dipnet-fishing',fishingRevision:12},null,2)+'\n');
 await cp(path.join(root, 'mobile-playtest'), path.join(out, 'mobile-playtest'), {
   recursive: true,
   filter: src => !path.relative(path.join(root,'mobile-playtest'),src).split(path.sep).some(part => ['node_modules', 'test-results', 'tests', 'source', 'tools', '.git'].includes(part))
