@@ -1,3 +1,4 @@
+import {ExperienceMenu} from '../../shared/experience.js';
 import {returnToPithouse} from './PithouseJourney.js';
 import {installBrowserPlaytest} from './BrowserPlaytest.js';
 import * as pc from 'playcanvas';
@@ -7,6 +8,7 @@ import {RiverWater} from './minigame/RiverWater.js';
 import {HudOverlay} from './ui/HudOverlay.js';
 import {safeLoad,instantiate,normalize,fallback,primitive} from './utils/PlaceholderFactory.js';
 import './ui/styles.css';
+import '../../shared/experience.css';
 const ui=new HudOverlay({onReturn:returnToPithouse});
 async function boot(){
  const canvas=document.getElementById('game');canvas.tabIndex=0;const device=await pc.createGraphicsDevice(canvas,{deviceTypes:['webgl2'],antialias:false,alpha:false});const app=new pc.Application(canvas,{graphicsDevice:device});app.setCanvasFillMode(pc.FILLMODE_FILL_WINDOW);app.setCanvasResolution(pc.RESOLUTION_AUTO);device.maxPixelRatio=Math.min(devicePixelRatio,matchMedia('(pointer: coarse)').matches?1:1.5);window.addEventListener('resize',()=>app.resizeCanvas());app.scene.ambientLight=new pc.Color(.62,.67,.68);const camera=new pc.Entity('Player');camera.addComponent('camera',{clearColor:new pc.Color(.5,.63,.67),nearClip:.06,farClip:450,fov:65});app.root.addChild(camera);const background=new pc.Layer({name:'Captured environment'});app.scene.layers.insert(background,0);camera.camera.layers=[background.id,...camera.camera.layers];const sun=new pc.Entity('River daylight');sun.addComponent('light',{type:'directional',intensity:1.4,color:new pc.Color(1,.96,.86)});sun.setEulerAngles(50,35,0);app.root.addChild(sun);app.start();
@@ -17,6 +19,6 @@ async function boot(){
  ui.loading('Opening the local river view…');const splat=await safeLoad(app,'./assets/splats/fraser_canyon_bank.spz','gsplat');if(!splat)throw Error('The local river splat could not load. Check your connection and reload.');if(!assets.net)throw Error('Original dip-net frame is missing from this package.');if(splat){const e=new pc.Entity('Fraser River bank splat');e.addComponent('gsplat',{asset:splat,layers:[background.id]});e.setPosition(...level.splat.position);e.setRotation(new pc.Quat(...level.splat.rotation));app.root.addChild(e);}
  const normal=await safeLoad(app,'./assets/water-normal.png','texture');const surface=instantiate(assets.surface),rocks=instantiate(assets.rocks);if(!surface||!rocks)throw Error('Local river surface/collision assets are missing. Rebuild the project assets.');const water=new RiverWater(app,camera,sun,surface,rocks,normal,level);
  const debugEntities=[];for(const c of level.colliders){if(!c.role)continue;const e=primitive(app,c.name,'box',c.center,c.size,[.3,.7,.9],.12);e.enabled=false;debugEntities.push(e);}
- const game=new FishingMiniGame(app,{level,assets,ui,playerCamera:camera,elder,anchorEntity:anchor,debugEntities,water,basketEntity,onComplete:r=>{try{localStorage.setItem('fraser-last-harvest',JSON.stringify(r));}catch{}}});ui.onReset=()=>game.reset();await game.start();installBrowserPlaytest(game);window.fishingGame=game;window.fishingApp=app;window.addEventListener('pagehide',()=>game.destroy(),{once:true});
+ const game=new FishingMiniGame(app,{level,assets,ui,playerCamera:camera,elder,anchorEntity:anchor,debugEntities,water,basketEntity,onComplete:r=>{try{localStorage.setItem('fraser-last-harvest',JSON.stringify(r));}catch{}}});ui.onReset=()=>game.reset();game.settingsMenu=new ExperienceMenu({onOpen:()=>{game.wasPausedBeforeSettings=game.paused;game.paused=true;game.keys.clear();game.net.submerged=false;},onClose:()=>{game.paused=game.wasPausedBeforeSettings;},onRestart:()=>game.reset(),onReturn:returnToPithouse});document.getElementById('session-menu').onclick=()=>game.settingsMenu.open();await game.start();installBrowserPlaytest(game);window.fishingGame=game;window.fishingApp=app;window.addEventListener('pagehide',()=>game.destroy(),{once:true});
 }
 boot().catch(e=>{console.error(e);ui.ready();ui.show('<h2>Unable to start the local game</h2><p id="error-detail"></p><button class="primary" onclick="location.reload()">Reload</button>');document.getElementById('error-detail').textContent=e.message;});

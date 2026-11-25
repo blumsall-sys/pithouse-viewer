@@ -1,3 +1,4 @@
+import {ExperienceMenu,narration} from '../../shared/experience.js';
 import * as pc from 'playcanvas';
 import { AdventureRuntime } from './adventure-runtime.js';
 import { dialogueAnimation, validateArmature, configureElderMaterials, elderSnapshot } from './elder-runtime.js';
@@ -180,7 +181,7 @@ function setAnimMode(mode) {
 async function createCharacters() {
   for(const npc of(state.scene.characters||[])) {
     const position=v3(npc.position);
-    const talkPoint=position.clone().add(new pc.Vec3(0,1.2,0));
+    const talkPoint=position.clone().add(new pc.Vec3(0,npc.eyeHeight||1.2,0));
     state.positions.push({type:'npc',name:npc.name||'Guide',position:talkPoint,id:npc.id||'npc',radius:npc.interactRadius||2.35,dialogue:npc.dialogue||'welcome'});
     if(!npc.model)throw new Error('Character '+(npc.name||npc.id)+' has no GLB model configured.');
     status('Loading character: '+(npc.name||npc.id)+'…');
@@ -270,7 +271,7 @@ function updateMovement(dt) {
   camera.setPosition(pos);
 }
 function canInteract(item) {
-  if(!state.started || state.talking || !item) return false;
+  if(!state.started || state.talking || state.settingsOpen || !item) return false;
   if(item.type==='collectible'&&state.collected.has(item.id))return false;
   // The interaction anchor can be at eye/torso or ground height. Use a horizontal
   // reach check with a vertical limit so ground collectibles are actually reachable.
@@ -318,12 +319,8 @@ function closeDialogue() {
   state.keys.clear();
   status('Explore · E to interact · mouse to look');
 }
-function sayOutLoud(t) {
-  if(!state.voice||!('speechSynthesis' in window))return;
-  speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(t);u.lang='en-CA';u.rate=.89;u.pitch=.94;
-  speechSynthesis.speak(u);
-}
+function sayOutLoud(t) { narration.speak(t); }
+
 function typeDialogue(dt) {
   if(!state.talking)return;
   state.timer+=dt;
@@ -414,7 +411,7 @@ function onLook(dx,dy) {
 function handleInputs() {
   document.addEventListener('keydown',ev=>{
     if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(ev.code))ev.preventDefault();
-    if(adventure?.handleKey(ev))return;
+    if(adventure?.handleKey(ev)){ev.preventDefault();return;}
     if(state.talking&&['KeyW','KeyS','KeyA','KeyD'].includes(ev.code))return;
     state.keys.add(ev.code);
     if(ev.code==='Backquote'){state.debug=!state.debug;ui.debug.hidden=!state.debug;}
@@ -437,6 +434,7 @@ function handleInputs() {
   ui.application.addEventListener('pointerup',()=>lastLook=null);
   window.addEventListener('resize',()=>app?.resizeCanvas());
   $('mobile-interact').addEventListener('click',()=>interactWith(nearestInteraction()));
+  $('mobile-jump').addEventListener('pointerdown',event=>{event.preventDefault();if(state.started&&!state.talking&&!state.settingsOpen&&adventure?.pause.hidden&&ui.help.hidden)adventure.walker.jump();});
   for(const [padId,key,thumbId] of [['move-pad','touchMove','move-thumb'],['look-pad','touchLook','look-thumb']]){
     const pad=$(padId),thumb=$(thumbId);let last={x:0,y:0};
     pad.addEventListener('pointerdown',ev=>{pad.setPointerCapture(ev.pointerId);last={x:ev.clientX,y:ev.clientY};});
@@ -455,13 +453,14 @@ function handleInputs() {
   $('help-button').addEventListener('click',()=>ui.help.hidden=!ui.help.hidden);
   $('close-help').addEventListener('click',()=>ui.help.hidden=true);
   ui['voice-button'].addEventListener('click',()=>{
-    state.voice=!state.voice;safeText(ui['voice-button'],'Voice: '+(state.voice?'On':'Off'));
+    state.voice=narration.setEnabled(!narration.enabled);safeText(ui['voice-button'],'Voice: '+(state.voice?'On':'Off'));
     ui['voice-button'].setAttribute('aria-pressed',String(state.voice));
     if(!state.voice&&'speechSynthesis'in window)speechSynthesis.cancel();
   });
   resetButton.addEventListener('click',()=>{
     if(!state.ready)return;
     state.started=true;document.body.classList.add('started');ui.welcome.hidden=true;
+    resetButton.blur();
     if(MOBILE)ui.touch.hidden=false;
     adventure?.start();
     // Do not open Elder dialogue until player approaches and explicitly interacts.
@@ -469,6 +468,7 @@ function handleInputs() {
   });
 }
 async function main() {
+  state.voice=narration.enabled;
   state.scene=await json(sceneURL);
   const pending = readSession(sessionStorage, travelKey);
   const arriving = pending?.outside === exterior;
@@ -505,8 +505,9 @@ async function main() {
   });
   status('Initializing voxel collision…');
   await adventure.initialize();
+  adventure.settingsMenu=new ExperienceMenu({onOpen:()=>{state.settingsOpen=true;state.keys.clear();state.touchMove=[0,0];},onClose:()=>{state.settingsOpen=false;},onVoice:enabled=>{state.voice=enabled;}});
   if(diagnostics)window.pithouseDebug={
-    snapshot:()=>({animation:currentElderMode,activeState:npcAnim?.baseLayer.activeState,animationTime:npcAnim?.baseLayer.activeStateCurrentTime,meshes:elderSnapshot(elderMeshes),camera:camera.getPosition().toArray(),inventory:adventure.inventory,elderMet:adventure.elderMet,scene:exterior?'fraser':'pithouse'}),
+    snapshot:()=>({animation:currentElderMode,activeState:npcAnim?.baseLayer.activeState,animationTime:npcAnim?.baseLayer.activeStateCurrentTime,meshes:elderSnapshot(elderMeshes),camera:camera.getPosition().toArray(),inventory:adventure.inventory,elderMet:adventure.elderMet,scene:exterior?'fraser':'pithouse',shotMoving:Boolean(adventure.transition),grounded:adventure.walker.grounded,feetY:adventure.walker.feetY,eyeHeight:adventure.walker.eyeHeight,elderEyes:(()=>{const elder=state.nodes.get('npc:elder'),head=elder?.findByName('mixamorig:Head'),top=elder?.findByName('mixamorig:HeadTop_End');return head&&top?head.getPosition().y+(top.getPosition().y-head.getPosition().y)*.55:null;})()}),
     setPose:(position,target)=>{adventure.transition=null;adventure.savedPose=null;adventure.currentShot=null;adventure.walker.reset(camera,v3(position));aimAt(v3(target),camera.getPosition());},
     splat:(visible)=>{splatEntity.enabled=Boolean(visible);},
     bounds:()=>{for(const mesh of elderMeshes)app.drawWireAlignedBox(mesh.aabb.getMin(),mesh.aabb.getMax(),pc.Color.YELLOW);}
@@ -533,7 +534,8 @@ async function main() {
       const entity = state.nodes.get('item:'+id);
       if (entity) entity.enabled=false;
     }
-    if (pending.voice) ui['voice-button'].click();
+    if(pending.voice&&!narration.enabled)narration.setEnabled(true);
+    state.voice=narration.enabled;
     resetButton.hidden = false;
     resetButton.click();
     $("welcome-title").nextElementSibling.hidden = false;

@@ -30,6 +30,7 @@ await writeFile(entry,(await readFile(entry,'utf8'))
   .replaceAll('./node_modules/playcanvas/build/playcanvas.min.mjs','./vendor/playcanvas.min.mjs')
   .replaceAll('https://cdn.jsdelivr.net/npm/playcanvas@2.24.0/+esm','./vendor/playcanvas.min.mjs'));
 await cp(path.join(root, 'fishing/dist'), path.join(out, 'fishing'), { recursive: true });
+await cp(path.join(root,'shared'),path.join(out,'shared'),{recursive:true});
 await cp(path.join(root, 'experience'), path.join(out, 'experience'), { recursive: true });
 await copyFile(path.join(root, 'fishing/LICENSE-PlayCanvas.txt'), path.join(out, 'fishing/LICENSE-PlayCanvas.txt'));
 await copyFile(path.join(root, 'README.md'), path.join(out, 'README.md'));

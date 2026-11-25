@@ -1,3 +1,4 @@
+import {installOfflineSite} from './offline-site.mjs';
 import { chromium } from '../mobile-playtest/experience/node_modules/playwright/index.mjs';
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
@@ -7,6 +8,7 @@ const browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_PATH
 await mkdir('test-results',{recursive:true});
 try {
   const page=await browser.newPage({viewport:{width:1100,height:760}}),errors=[],badResponses=[];
+  if(process.env.PITHOUSE_OFFLINE)await installOfflineSite(page);
   page.setDefaultTimeout(30000);
   page.on('pageerror',e=>{errors.push(e.message);console.error('PAGE ERROR',e.message);});
   page.on('console',m=>{if(m.type()==='error')console.error('Browser:',m.text());});
@@ -27,11 +29,11 @@ try {
   await reveal();await page.keyboard.press('Escape');await page.waitForTimeout(1000);
   console.log('Collect study stone and cross ladder');
   await pose([-1,1.65,1.5],[-1,.3,2.7]);
-  await page.getByRole('button',{name:/Study Stone/}).click();
+  await page.keyboard.press('KeyE');
   await page.getByRole('button',{name:'Take item',exact:true}).click();
   assert.equal(await page.evaluate(()=>pithouseDebug.snapshot().inventory.length),1);
   await pose([-.35,1.7,3.25],[.45,1.65,3.55]);
-  await page.getByRole('button',{name:/Investigate the center pole/}).click();
+  await page.keyboard.press('KeyE');
   await page.getByRole('button',{name:'Climb to Fraser River',exact:true}).click();
   await page.waitForURL(/scene=fraser/);await ready();
   await page.waitForFunction(()=>document.body.classList.contains('started'));
@@ -92,6 +94,7 @@ try {
   console.log('PASS: interior → ladder → river elder (decline/accept) → fishing → reset → completed round → interior; inventory preserved, no page errors.');
   console.log('Touch portrait summary and reset');
   const mobile=await browser.newPage({viewport:{width:390,height:844},hasTouch:true,isMobile:true,deviceScaleFactor:1});
+  if(process.env.PITHOUSE_OFFLINE)await installOfflineSite(mobile);
   mobile.on('pageerror',e=>errors.push(e.message));
   await mobile.goto(new URL('fishing/',origin).href);
   await mobile.waitForFunction(()=>window.fishingGame,null,{timeout:180000});
@@ -103,8 +106,8 @@ try {
   await mobile.screenshot({path:'test-results/fishing-touch-summary.jpg',timeout:90000});
   await mobile.locator('#reset-experience').click();
   assert.equal(await mobile.evaluate(()=>fishingGame.state.state),'EXPLORE');
-  await mobile.locator('#session-menu').click();
-  assert.equal(await mobile.locator('#return-pithouse').isVisible(),true);
+  await mobile.locator('#settings-button').click();
+  assert.equal(await mobile.locator('#settings-return').isVisible(),true);
   assert.deepEqual(errors,[]);
   console.log('PASS: touch portrait results, reset, and pause-menu return option.');
 } finally {await browser.close();}

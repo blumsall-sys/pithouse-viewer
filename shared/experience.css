@@ -1,0 +1,30 @@
+:root{--journey-font:system-ui,-apple-system,"Segoe UI",sans-serif;--journey-panel:rgba(19,43,45,.96);--journey-ink:#fff1d5;--journey-gold:#dfc38a;--journey-text:16px;--journey-title:28px;--journey-card-width:440px}
+.journey-menu-button{position:fixed;z-index:61;right:max(16px,env(safe-area-inset-right));top:max(12px,env(safe-area-inset-top));min-width:70px;min-height:44px;border:1px solid #d9c28a88;border-radius:8px;background:var(--journey-panel);color:var(--journey-ink);font:14px var(--journey-font);padding:10px 16px;pointer-events:auto}
+.journey-settings{position:fixed;z-index:60;inset:0;background:#081416b8;display:grid;place-items:center;padding:12px;overflow:auto;color:var(--journey-ink);font-family:var(--journey-font);pointer-events:auto}
+.journey-settings[hidden]{display:none!important}
+.journey-card{box-sizing:border-box;width:min(var(--journey-card-width),calc(100vw - 32px));max-height:calc(100dvh - 24px);overflow:auto;padding:22px;border:1px solid #d9c28a88;border-radius:12px;background:var(--journey-panel);box-shadow:0 18px 60px #0008}
+.journey-card h2{font:normal var(--journey-title)/1.2 Georgia,serif;margin:12px 0 18px;letter-spacing:normal;color:var(--journey-ink)}
+.journey-card .eyebrow{font:600 10px var(--journey-font);letter-spacing:2px;color:var(--journey-gold)}
+.journey-menu-actions{display:grid;gap:8px}
+.journey-menu-actions button{display:block;width:100%;min-height:44px;border:1px solid #dfc38a66;border-radius:7px;padding:10px 14px;background:#ffffff08;color:var(--journey-ink);text-align:left;font:var(--journey-text)/1.4 var(--journey-font);cursor:pointer}
+.journey-card p{font:var(--journey-text)/1.55 var(--journey-font);color:#dedbce}
+.experience-menu,#ui>header nav{display:none!important}
+#mobile-jump{position:absolute;left:164px;bottom:max(30px,env(safe-area-inset-bottom));min-height:48px;min-width:70px;padding:12px;border-radius:24px;pointer-events:auto;touch-action:none}
+@media(pointer:coarse),(max-width:950px) and (max-height:600px){
+  #topbar,#ui>header{position:fixed;left:max(16px,env(safe-area-inset-left));right:max(16px,env(safe-area-inset-right));top:max(12px,env(safe-area-inset-top));padding:0;min-height:44px;pointer-events:none;background:none;z-index:12}
+  #topbar .brand,#ui .brand{margin:0;padding:9px 12px;min-height:44px;max-width:calc(100vw - 115px);border-radius:8px;background:var(--journey-panel);font:700 12px var(--journey-font);letter-spacing:2px;color:var(--journey-ink)}
+  #topbar .brand strong{font:700 12px var(--journey-font);letter-spacing:2px}
+  #topbar .brand small,#ui .brand small,.brand-mark,.brand .mark{display:none!important}
+  #dialogue,#modal,#modal.elder-briefing,.touch-mode #modal.elder-briefing{box-sizing:border-box;position:fixed;left:max(16px,env(safe-area-inset-left));right:auto;top:auto;bottom:max(12px,env(safe-area-inset-bottom));transform:none;width:min(var(--journey-card-width),calc(100vw - 32px));max-width:none;max-height:calc(100dvh - 80px);overflow:auto;padding:18px 20px;border:1px solid #d9c28a88;border-radius:12px;background:var(--journey-panel);color:var(--journey-ink);text-align:left;box-shadow:0 18px 60px #0008}
+  #dialogue .dialogue-text,#modal p,.touch-mode #modal p,.welcome-card p,.modal-description{font:var(--journey-text)/1.55 var(--journey-font);min-height:0;max-height:none;color:#dedbce;margin:12px 0}
+  #dialogue .dialogue-header,#modal h1,#modal h2,.touch-mode #modal h1,.modal-title,.welcome-card h1{font:normal var(--journey-title)/1.2 Georgia,serif;letter-spacing:normal;margin:0 0 12px;color:var(--journey-ink)}
+  #dialogue .choice,#dialogue .secondary,#modal button,.touch-mode #modal .primary,.modal-actions button,.welcome-card button{font:var(--journey-text)/1.4 var(--journey-font);min-height:44px;padding:10px 14px;border-radius:7px}
+  #dialogue .choice,#modal .secondary{background:#ffffff08;border:1px solid #dfc38a66;color:var(--journey-ink)}
+  #dialogue .choices{gap:8px}#dialogue .dialogue-footer{margin-top:10px;flex-wrap:wrap;font:12px var(--journey-font)}
+  .welcome-card,.adventure-modal .modal-card{box-sizing:border-box;width:min(var(--journey-card-width),calc(100vw - 32px));max-height:calc(100dvh - 24px);overflow:auto;padding:22px;background:var(--journey-panel);border:1px solid #d9c28a88;border-radius:12px}
+  .modal-actions{max-height:none;gap:8px}.help-panel{max-height:calc(100dvh - 90px);overflow:auto;font-size:var(--journey-text)}
+  .touchpad{width:104px;height:104px}.touch-label{line-height:104px}#move-pad{left:16px}#look-pad{right:16px}#mobile-jump{left:132px}#mobile-interact{right:27px;bottom:135px;min-height:48px;font:14px var(--journey-font)}
+  #modal .species .fish-badge{width:60px;height:63px}#modal .species{padding:4px 0}
+  #modal .results{margin:12px 0;gap:12px}#modal .results strong{font-size:26px}
+}
+body.dialogue-open #touch{visibility:hidden}

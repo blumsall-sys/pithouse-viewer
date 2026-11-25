@@ -63,7 +63,7 @@
       ],
       "yaw": 180,
       "model": "./assets/elder.glb",
-      "scale": 1.7,
+      "scale": 2.4,
       "interactRadius": 2.6,
       "dialogue": "fishingInvitation",
       "animationClips": {
@@ -71,12 +71,21 @@
         "Talk": "NlaTrack_Talking",
         "FireWork": "NlaTrack_Working"
       },
-      "placementNote": "Median voxel floor under the working envelope is 0 m. Keep the imported armature transform.",
+      "placementNote": "Feet stay on the same shoreline voxel. Placement scale is calibrated against the controlled camera on the higher approach bank.",
       "autoStartDialogue": false,
-      "notes": "Sampled skinned idle height is 1.70 m after placement scale; Working crouches and reaches toward the hearth.",
+      "notes": "Keep the original armature and bind transforms; only the placement parent is scaled.",
       "material": {
         "mode": "mask",
         "alphaCutoff": 0.1
+      },
+      "eyeHeight": 2.255,
+      "scaleReference": {
+        "playerPosition": [
+          -6,
+          9.455,
+          21
+        ],
+        "targetEyeY": 9.455
       }
     }
   ],
@@ -87,13 +96,13 @@
       "enabled": true,
       "center": [
         -6,
-        8.05,
+        8.4,
         23
       ],
       "size": [
-        0.85,
-        1.7,
-        0.85
+        1.1,
+        2.4,
+        1.1
       ]
     }
   ],
@@ -120,12 +129,12 @@
     "riverElder": {
       "position": [
         -6,
-        8.8,
+        9.455,
         20.6
       ],
       "target": [
         -6,
-        8.3,
+        9.455,
         23
       ],
       "fov": 65,

@@ -1,6 +1,7 @@
+import {reachableRestingPoint} from './FishingReach.js';
 export function inPolygon(x,z,polygon){let inside=false;for(let i=0,j=polygon.length-1;i<polygon.length;j=i++){const a=polygon[i],b=polygon[j];if((a[1]>z)!==(b[1]>z)&&x<(b[0]-a[0])*(z-a[1])/(b[1]-a[1])+a[0])inside=!inside;}return inside;}
 export class RiverCurrentSystem{
- constructor(level){this.level=level;this.river=level.river;this.water=level.water;this.grid=level.rockGrid;this.eddies=level.eddies.map(([x,y,z,r])=>({x,y,z,r,occupant:null}));for(const e of this.eddies){const p=this.safePoint(e.x,e.z,.52);e.x=p.x;e.z=p.z;}}
+ constructor(level){this.level=level;this.river={...level.river,escapes:level.river.escapes||[level.river.escape||[14.5,8],[-2,9.5]]};this.water=level.water;this.grid=level.rockGrid;this.eddies=level.eddies.map(([x,y,z,r])=>({x,y,z,r,occupant:null}));for(const e of this.eddies){const p=this.safePoint(e.x,e.z,.52);e.x=p.x;e.z=p.z;}}
  ground(x,z){const g=this.grid,i=Math.floor((x-g.minX)/g.cell),j=Math.floor((z-g.minZ)/g.cell);return i>=0&&i<g.width&&j>=0&&j<g.height?g.heights[j*g.width+i]:null;}
  isClear(x,z,radius=.35){if(!inPolygon(x,z,this.water.polygon))return false;for(let i=0;i<12;i++){const a=i*Math.PI/6;if(!inPolygon(x+Math.cos(a)*radius,z+Math.sin(a)*radius,this.water.polygon))return false;}const g=this.grid;const i0=Math.floor((x-radius-g.minX)/g.cell),i1=Math.floor((x+radius-g.minX)/g.cell),j0=Math.floor((z-radius-g.minZ)/g.cell),j1=Math.floor((z+radius-g.minZ)/g.cell);for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){if(i<0||j<0||i>=g.width||j>=g.height)continue;if(g.heights[j*g.width+i]===null)continue;const cx=g.minX+i*g.cell,cz=g.minZ+j*g.cell,px=Math.max(cx,Math.min(cx+g.cell,x)),pz=Math.max(cz,Math.min(cz+g.cell,z));if(Math.hypot(px-x,pz-z)<radius)return false;}return true;}
  channelCenter(x,radius=.45){for(let z=5.7;z<7.55;z+=.12)if(this.isClear(x,z,radius))return z;return 7.3;}
@@ -18,5 +19,6 @@ export class RiverCurrentSystem{
 
  }
  spawnPoint(radius=.35,approach=false){if(approach&&this.river.upstream){const u=this.river.upstream;return this.safePoint(u.laneMinX+Math.random()*(u.laneMaxX-u.laneMinX),u.spawnZ+Math.random()*5,radius); }const route=this.path({x:this.river.spawnX,z:5.9},{x:this.river.goalX+.07,z:6.6},radius,true);if(!route.length)throw Error('River has no connected spawn-to-goal route');return route[0];}
- clear(){for(const e of this.eddies)e.occupant=null;}
+ restingPoint(radius,seed=0,player){return reachableRestingPoint(this,radius,seed,player);}
+ clear(){this.restingReservations=[];for(const e of this.eddies)e.occupant=null;}
 }
