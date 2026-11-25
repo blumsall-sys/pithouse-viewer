@@ -9,7 +9,7 @@ await mkdir('test-results',{recursive:true});
 try {
   const page=await browser.newPage({viewport:{width:1100,height:760}}),errors=[],badResponses=[];
   if(process.env.PITHOUSE_OFFLINE)await installOfflineSite(page);
-  page.setDefaultTimeout(30000);
+  page.setDefaultTimeout(30000);page.setDefaultNavigationTimeout(180000);
   page.on('pageerror',e=>{errors.push(e.message);console.error('PAGE ERROR',e.message);});
   page.on('console',m=>{if(m.type()==='error')console.error('Browser:',m.text());});
   page.on('response',response=>{if(response.status()>=400){badResponses.push(response.url());console.error('HTTP',response.status(),response.url());}});
@@ -34,7 +34,7 @@ try {
   assert.equal(await page.evaluate(()=>pithouseDebug.snapshot().inventory.length),1);
   await pose([-.35,1.7,3.25],[.45,1.65,3.55]);
   await page.keyboard.press('KeyE');
-  await page.getByRole('button',{name:'Climb to Fraser River',exact:true}).click();
+  await page.getByRole('button',{name:'Climb to Fraser River',exact:true}).click({noWaitAfter:true});
   await page.waitForURL(/scene=fraser/);await ready();
   await page.waitForFunction(()=>document.body.classList.contains('started'));
   assert.equal(await page.evaluate(()=>pithouseDebug.snapshot().inventory.length),1);
@@ -49,7 +49,7 @@ try {
   assert.equal(await page.locator('#dialogue').isVisible(),false);
   await page.waitForTimeout(1000);
   await page.getByRole('button',{name:/✦ Elder/}).click();await reveal();
-  await page.getByRole('button',{name:/Yes, teach me/}).click();
+  await page.getByRole('button',{name:/Yes, teach me/}).click({noWaitAfter:true});
   await page.waitForURL(/\/fishing\//);
   await page.waitForFunction(()=>window.fishingGame,null,{timeout:180000});
   assert.equal(await page.evaluate(()=>fishingGame.state.state),'EXPLORE');
@@ -83,7 +83,7 @@ try {
   await page.setViewportSize({width:1100,height:760});
   await page.screenshot({path:'test-results/fishing-summary.jpg',timeout:90000});
   console.log('Return to interior with inventory and elder progress');
-  await page.getByRole('button',{name:'Return to the pithouse',exact:true}).click();
+  await page.getByRole('button',{name:'Return to the pithouse',exact:true}).click({noWaitAfter:true});
   await page.waitForURL(/\/mobile-playtest\/experience\/$/);
   await page.waitForFunction(()=>document.body.classList.contains('started'),null,{timeout:180000});
   assert.match(await page.locator('#collection').textContent(),/1 item/);

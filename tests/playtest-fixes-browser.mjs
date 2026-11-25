@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 const browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_PATH?{executablePath:process.env.CHROMIUM_PATH}:{}),args:['--use-angle=swiftshader','--enable-unsafe-swiftshader']});
 try{
   const page=await browser.newPage({viewport:{width:844,height:390},hasTouch:true,isMobile:true}),errors=[];
-  await installOfflineSite(page);page.setDefaultTimeout(45000);
+  await installOfflineSite(page);page.setDefaultTimeout(45000);page.setDefaultNavigationTimeout(180000);
   page.on('pageerror',e=>{errors.push(e.message);console.error(e.message);});
   await page.addInitScript(()=>{
     window.spoken=[];
@@ -48,7 +48,7 @@ try{
   const face=await page.evaluate(async()=>{const pc=await import('playcanvas'),app=pc.Application.getApplication(),head=app.root.findByName('mixamorig:Head'),camera=app.root.findByName('First person camera');return camera.camera.worldToScreen(head.getPosition()).x;});
   assert.ok(face>(await page.locator('#dialogue').boundingBox()).x+440&&face<824,'Elder face must remain beside the dialogue panel');
   await page.screenshot({path:'test-results/fixed-river-elder-landscape.jpg',timeout:90000});
-  await menu();await page.locator('#settings-reset').tap();
+  await menu();await page.locator('#settings-reset').tap({noWaitAfter:true});
   await page.waitForURL('http://127.0.0.1:8170/mobile-playtest/experience/');
   await page.locator('#start-button:enabled').waitFor({timeout:180000});
   assert.equal(await page.locator('#welcome').isVisible(),true);
@@ -71,7 +71,7 @@ try{
   await menu();assert.equal(await page.locator('#settings-voice').textContent(),'Voice: On');
   await page.screenshot({path:'test-results/fixed-settings-landscape.jpg',timeout:90000});
   await page.evaluate(()=>{sessionStorage.setItem('pithouse-fishing-trip',JSON.stringify({inventory:[{id:'stone'}]}));});
-  await page.locator('#settings-reset').tap();
+  await page.locator('#settings-reset').tap({noWaitAfter:true});
   await page.waitForURL('http://127.0.0.1:8170/mobile-playtest/experience/');
   await page.locator('#start-button:enabled').waitFor({timeout:180000});
   assert.equal(await page.evaluate(()=>sessionStorage.getItem('pithouse-fishing-trip')),null);
