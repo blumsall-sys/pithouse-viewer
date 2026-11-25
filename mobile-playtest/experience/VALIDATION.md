@@ -1,0 +1,10 @@
+# Original Elder validation - November 12, 2026
+
+Feature baseline: a878ad2. PlayCanvas 2.24.0, Chromium WebGL2, repository SOG and voxel grid. Original GLB installed unchanged: 53,339,264 bytes, SHA-256 a7ae569b4337ca1bb2167ebe4433688770adef2579032ff74d8f255d93a28617.
+
+- Same front camera, original BLEND: rear coat draws over the face and chest. With the existing depth-writing MASK policy these surfaces render in the correct order. The Elder was visible in sampled front, side and back poses, with culling enabled. No independent whole-mesh culling failure was reproduced. The scan still participates in depth testing.
+- RGBA atlas: 2048 x 2048, 29 fully transparent texels, 44 below cutoff 0.1, 3,374,249 fully opaque. Retained cutoff and texture; use a 1.25x desktop resolution floor for silhouette edges; keep multisampling off for the scan.
+- Sampled skinned positions at five timestamps per clip, every 17th vertex, nearest channel keys. Standing height is approximately 1.70 m. Working lowers the head to ~0.71 m and reaches ~0.75 m forward. Lowest sampled point in Working is ~4 cm below the standing sole, within one 5 cm voxel. No foot IK.
+- Moved placement from (0.95,0,2.2) to (0.8,0,2.4). Median floor height across the working envelope is zero. A 10 cm clearance grid over that envelope found no occupied samples at heights 0.12 through 1.72 m. This is a sampled clearance test, not a triangle intersection guarantee. Enlarged the static collider to include the crouch and forward reach.
+- The former Working shot aimed away at the annotated hearth. The new shot frames the crouching Elder; the informational hearth shot remains. The revised greeting frames the upper body. A scrollable dialogue panel preserves upper screen space on shorter displays.
+- Six unit tests pass. Actual-GLB scene validator: zero errors/warnings. Chromium smoke exercised Idle, Talk, Working, return to Idle and annotation interaction. Desktop software WebGL does not verify mobile GPU performance, every possible occluder, or an unrecorded historical path.

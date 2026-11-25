@@ -1,0 +1,116 @@
+{
+  "version": 2,
+  "tonemapping": "linear",
+  "highPrecisionRendering": false,
+  "background": {
+    "color": [
+      0,
+      0,
+      0
+    ]
+  },
+  "postEffectSettings": {
+    "sharpness": {
+      "enabled": false,
+      "amount": 0
+    },
+    "bloom": {
+      "enabled": false,
+      "intensity": 0.1,
+      "blurLevel": 2
+    },
+    "grading": {
+      "enabled": false,
+      "brightness": 1,
+      "contrast": 1,
+      "saturation": 1,
+      "tint": [
+        1,
+        1,
+        1
+      ]
+    },
+    "vignette": {
+      "enabled": false,
+      "intensity": 0.5,
+      "inner": 0.3,
+      "outer": 0.75,
+      "curvature": 1
+    },
+    "fringing": {
+      "enabled": false,
+      "intensity": 0.5
+    }
+  },
+  "animTracks": [],
+  "cameras": [
+    {
+      "initial": {
+        "position": [
+          2,
+          2,
+          -2
+        ],
+        "target": [
+          0,
+          0,
+          0
+        ],
+        "fov": 95
+      }
+    }
+  ],
+  "annotations": [
+    {
+      "position": [
+        0.7034601835623859,
+        2.153837355320382,
+        4.049684172797097
+      ],
+      "title": "Pit House Center Pole",
+      "text": "Some Pit Houses have customized \"Stair Patterns\" so intruders would stumble if they tried to sneak in.",
+      "extras": {},
+      "camera": {
+        "initial": {
+          "position": [
+            -0.19832758605480194,
+            2.122495651245117,
+            -3.549173355102539
+          ],
+          "target": [
+            -0.9174435646114875,
+            1.1552601939224076,
+            3.7579871417393766
+          ],
+          "fov": 95
+        }
+      }
+    },
+    {
+      "position": [
+        -0.18115463598253093,
+        0.030146298702567353,
+        1.2589038264450556
+      ],
+      "title": "This is not a fire pit.",
+      "text": "This is where warm embers and stones would be collected. Fire would not be lit here, because we do not want to smoke out the  Pit House we are living in!",
+      "extras": {},
+      "camera": {
+        "initial": {
+          "position": [
+            -0.19832758605480194,
+            2.122495651245117,
+            -3.549173355102539
+          ],
+          "target": [
+            -0.6853426597040684,
+            1.4674438076890235,
+            1.3995378592957586
+          ],
+          "fov": 95
+        }
+      }
+    }
+  ],
+  "startMode": "default"
+}

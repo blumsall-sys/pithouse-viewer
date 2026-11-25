@@ -1,0 +1,135 @@
+{
+  "name": "Fraser River",
+  "environment": {
+    "splat": "./assets/fraser/landscape.sog",
+    "placement": {
+      "position": [
+        0.06560044512152673,
+        16.31576654434204,
+        -2.6786303520202637
+      ],
+      "quaternion": [
+        0.9760298132896423,
+        -0.00014702735643368214,
+        0.2155425101518631,
+        0.03011923097074032
+      ],
+      "scale": [
+        3.405549812316895,
+        3.405549812316895,
+        3.405549812316895
+      ]
+    },
+    "panorama": "./assets/fraser/panorama.jpg",
+    "voxelJson": "./assets/fraser/terrain.voxel.json",
+    "voxelBin": "./assets/fraser/terrain.voxel.bin",
+    "propsGlb": "./assets/fraser/entrance.glb"
+  },
+  "spawn": {
+    "position": [
+      2,
+      18.5,
+      0
+    ],
+    "lookAt": [
+      2,
+      16,
+      22
+    ],
+    "fov": 78
+  },
+  "movement": {
+    "speed": 2.6,
+    "radius": 0.22,
+    "eyeHeight": 1.6
+  },
+  "portal": {
+    "name": "Descend the ladder into the pithouse",
+    "position": [
+      0.6,
+      17.3,
+      0.7
+    ],
+    "radius": 3.1
+  },
+  "characters": [
+    {
+      "id": "elder",
+      "name": "Elder",
+      "position": [
+        -6,
+        7.2,
+        23
+      ],
+      "yaw": 180,
+      "model": "./assets/elder.glb",
+      "scale": 1.7,
+      "interactRadius": 2.6,
+      "dialogue": "fishingInvitation",
+      "animationClips": {
+        "Idle": "mixamo.com_Idle",
+        "Talk": "NlaTrack_Talking",
+        "FireWork": "NlaTrack_Working"
+      },
+      "placementNote": "Median voxel floor under the working envelope is 0 m. Keep the imported armature transform.",
+      "autoStartDialogue": false,
+      "notes": "Sampled skinned idle height is 1.70 m after placement scale; Working crouches and reaches toward the hearth.",
+      "material": {
+        "mode": "mask",
+        "alphaCutoff": 0.1
+      }
+    }
+  ],
+  "colliders": [
+    {
+      "id": "river-elder-body",
+      "kind": "solid",
+      "enabled": true,
+      "center": [
+        -6,
+        8.05,
+        23
+      ],
+      "size": [
+        0.85,
+        1.7,
+        0.85
+      ]
+    }
+  ],
+  "dialogue": {
+    "fishingInvitation": {
+      "speaker": "Elder",
+      "character": "elder",
+      "text": "Would you like to learn about dipnet fishing? Come and learn by the river.",
+      "minDecisionSeconds": 0.8,
+      "camera": "riverElder",
+      "choices": [
+        {
+          "text": "Yes, teach me about dipnet fishing.",
+          "action": "fishing"
+        },
+        {
+          "text": "Not yet. I would like to keep exploring.",
+          "mode": "explore"
+        }
+      ]
+    }
+  },
+  "cameras": {
+    "riverElder": {
+      "position": [
+        -6,
+        8.8,
+        20.6
+      ],
+      "target": [
+        -6,
+        8.3,
+        23
+      ],
+      "fov": 65,
+      "duration": 0.65
+    }
+  }
+}
